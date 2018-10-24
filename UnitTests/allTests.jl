@@ -1,6 +1,8 @@
 ##  a bare bones Test-Suite for some critical functions
 using Base.Test
-include("../src/babyNewsVendor.jl")
+using Distributions
+
+include("../src/JS_SAA_main.jl")
 
 @testset "All Tests" begin 
 
@@ -24,18 +26,37 @@ end
 	srand(8675309)
 	K = 100
 	ps = rand(K);
-	Nhats = 20 * floor.(Int, rand(K))
+	Nhats = rand(Poisson(20), K)
 	alpha_grid = linspace(0, 80, 80)
 	ss = rand(K)/4 + .75
 	p0 = .5
-	mhats = JS.sim_path(ps, Nhats)
-	alphaOR, jstar, out = JS.oracle_alpha(mhats, ps, p0, alpha_grid, Nhats, ss)
-	@test isapprox(out[jstar], 7.72698286347512)
-	@test isapprox(alphaOR, 0)
-	
-	alphaAP, jstar, out = JS.apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
-	@test isapprox(out[jstar], 0.5096223445262258)
-	@test isapprox(alphaAP, 1.0126582278481013)
+	mhats = JS.nv_sim_path(ps, Nhats)
+	alphaOR, jstar, out = JS.nv_oracle_alpha(mhats, ps, p0, alpha_grid, Nhats, ss)
+	@test isapprox(out[jstar], 0.4323864805448839)
+	@test isapprox(alphaOR, 2.0253164556962027)
+
+	alphaAP, jstar, out = JS.nv_apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
+	@test isapprox(out[jstar], 0.4338668678652777)
+	@test isapprox(alphaAP, 2.025316455696202)
+
+	alphaLOO, jstar, out = JS.nv_loo_alpha(mhats, p0, alpha_grid, Nhats, ss)
+	@test isapprox(out[jstar], 7.926847617453273)
+	@test isapprox(alphaLOO, 1.0126582278481013)
+
+	p0_grid = linspace(0, 1, 20)
+	p0OR, alphaOR, jstar = JS.nv_oracle_both(mhats, ps, p0_grid, alpha_grid, Nhats, ss)
+	@test isapprox(p0OR, 0.21052631578947367)
+	@test isapprox(alphaOR, 14.177215189873417)
+	@test jstar == 15
+
+	p0LOO, alphaLOO, jstar = JS.nv_loo_both(mhats, p0_grid, alpha_grid, Nhats, ss)
+	@test isapprox(p0LOO, 0.15789473684210525)
+	@test isapprox(alphaLOO, 11.139240506329115)
+	@test jstar == 12
+
+
+
+
 
 end
 

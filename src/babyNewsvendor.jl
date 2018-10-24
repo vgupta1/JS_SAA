@@ -1,16 +1,3 @@
-### 
-#Workhorse functions for Stein Shrinkage SAA paper
-###
-module JS
-using Distributions
-
-###
-#General purpose functions
-###
-#VG consider also write an inplace version. 
-shrink(phat_k, p0, alpha, Nhat_k) = @. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
-
-
 ###
 # Specialized functions for Newsvendor with Ber(p) demand
 # unit holding, backorder cost: b = s/(1-s)
@@ -22,7 +9,7 @@ nv_prob_k(p, p0, alpha, Nhat_k, s) = ccdf(Binomial(Nhat_k, p), (Nhat_k + alpha) 
     
 #vectorized way to simulate counts
 #returns vector mhat_k for 1s only.  
-sim_path(ps, Ns) = @.sum(rand(Bernoulli(ps), Ns))
+nv_sim_path(ps, Ns) = @.sum(rand(Bernoulli(ps), Ns))
 
 #E[Z_k(alpha)], i.e. expected true obj at x(alpha)
 function exp_nv_obj_k(p, p0, alpha, Nhat_k, s)
@@ -84,14 +71,14 @@ end
 
 #Optimzes Z(\alpha) over alpha_grid
 #returns alphaOR, minimizingAlphaIndex, curveInAlpha
-function oracle_alpha(mhats, ps, p0, alpha_grid, Nhats, ss)
+function nv_oracle_alpha(mhats, ps, p0, alpha_grid, Nhats, ss)
 	out = map(a-> nv_obj(mhats, ps, p0, a, Nhats, ss), alpha_grid)
 	jstar = indmin(out)
 	return alpha_grid[jstar], jstar, out
 end
 
 #returns p0OR, alphaOR, jOR for alpha
-function oracle_both(mhats, ps, p0_grid, alpha_grid, Nhats, ss)
+function nv_oracle_both(mhats, ps, p0_grid, alpha_grid, Nhats, ss)
 	out = zeros(length(alpha_grid))
 	or_perf, p0OR, alphaOR, jOR = Inf, 0., 0., 0
 	for p0 in p0_grid
@@ -110,14 +97,14 @@ end
 #optimizes ZLoo(\alpha)over alpha_grid
 #Note curve in alpha = Nintensity * lamavg * ZLoo(alpha)
 #returns alpha^LOO, maximizingAlphaIndex, curveInAlpha
-function loo_alpha(mhats, p0, alpha_grid, Nhats, ss)
+function nv_loo_alpha(mhats, p0, alpha_grid, Nhats, ss)
 	out = map(a-> nv_loo(mhats, p0, a, Nhats, ss), alpha_grid)
 	jstar = indmin(out)
 	return alpha_grid[jstar], jstar, out
 end
 
 #loo estimate optimizing boht p0 and alpha0
-function loo_both(mhats, p0_grid, alpha_grid, Nhats, ss)
+function nv_loo_both(mhats, p0_grid, alpha_grid, Nhats, ss)
 	out = zeros(length(alpha_grid))
 	loo_perf = Inf
 	p0LOO = 0.
@@ -137,10 +124,9 @@ function loo_both(mhats, p0_grid, alpha_grid, Nhats, ss)
 end
 
 
-
 #Optimzes E[Z(\alpha)] over alpha_grid
 #returns alphaAP, minimizingAlphaIndex, curveInAlpha
-function apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
+function nv_apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
 	out = map(a-> exp_nv_obj(ps, p0, a, Nhats, ss), alpha_grid)
 	jstar = indmin(out)
 	return alpha_grid[jstar], jstar, out
@@ -155,5 +141,3 @@ nv_saa(mhats, p0, alpha, Nhats, ss) = mean( nv_saa_k.(mhats, p0, alpha, Nhats, s
 exp_nv_obj(ps, p0, alpha, Nhats, ss) = mean( exp_nv_obj_k.(ps, p0, alpha, Nhats, ss) )
 nv_var_obj(ps, p0, alpha, Nhats, ss) = mean( nv_var_obj_k.(ps, p0, alpha, Nhats, ss) )
 exp_nv_fullInfo(ps, s) = mean(exp_nv_fullInfo_k.(ps, s))
-
-end #closes module
