@@ -123,7 +123,6 @@ function nv_loo_both(mhats, p0_grid, alpha_grid, Nhats, ss)
 	return p0LOO, alphaLOO, jLOO
 end
 
-
 #Optimzes E[Z(\alpha)] over alpha_grid
 #returns alphaAP, minimizingAlphaIndex, curveInAlpha
 function nv_apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
@@ -131,7 +130,6 @@ function nv_apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
 	jstar = indmin(out)
 	return alpha_grid[jstar], jstar, out
 end
-
 
 #vector versions assume lam_k = 1 for all k
 nv_loo(mhats, p0, alpha, Nhats, ss) =  mean( nv_loo_k.(mhats, p0, alpha, Nhats, ss) )
