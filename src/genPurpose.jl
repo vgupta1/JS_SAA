@@ -2,11 +2,11 @@
 
 #User is expected to pass functions
 #x_k(p0, alpha, mhatk)  : provides a solution with data mhatk
-#c_ki(x)      		
+#c_ik(x)      		
 #These are often collected into arrays of functions
 # xs			: [x_k for k = 1:K ]
-# c_k  			: [c_ki for i = 1:d ]
-# cs			: (d, K) Matrix with elements c_ki
+# c_k  			: [c_ik for i = 1:d ]
+# cs			: (d, K) Matrix with elements c_ik
 
 #General purpose functions
 ###
@@ -89,7 +89,7 @@ end
 
 function z_k(x_k, c_k, p0, alpha, mhat_k, ps_k, lam_k, lamavg)
 	x = x_k(p0, alpha, mhat_k)
-	cs = map(c_ki -> c_ki(x), c_k)
+	cs = map(c_ik -> c_ik(x), c_k)
 	lam_k/lamavg * dot(ps_k, cs) 
 end
 
@@ -189,35 +189,32 @@ function genNewsvendors(supp, ss, K)
 	    supp[indx]
 	end
 
-	function c_ki(i, x, s)
+	function c_ik(i, x, s)
 	    supp[i] > x ? s/(1-s) * (supp[i] - x) : (x - supp[i])
 	end
 
 	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, ss[k]) for k = 1:K]
-	cs = [x->c_ki(i, x, ss[k]) for i = 1:length(supp), k = 1:K]
+	cs = [x->c_ik(i, x, ss[k]) for i = 1:length(supp), k = 1:K]
 	cs, xs
 end
 
-# ###  
-# #Convenience functions to generate a sequence of newsvendor problems
-# #  each with its own support, potentially different service levels    
-# #  assumes supp K x d, each row is ordered vector of Reals
-# # returns cs, xs
-# function genNewsvendorsDiffSupp(supps, ss, K)
+###  
+# Ideally should have a broadcast implementaiton that combines
+# previous two...
+function genNewsvendorsDiffSupp(supps, s, K)
+	#Generic computation of the sth quantile 
+	function x_k(p0, alpha, mhat_k, k, s) 
+	    const Nhat_k = sum(mhat_k)
+	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
+	    indx = quantile(Categorical(palpha), s)
+	    supps[k, indx]
+	end
 
-# 	#Generic computation of the sth quantile 
-# 	function x_k(p0, alpha, mhat_k, k, s) 
-# 	    const Nhat_k = sum(mhat_k)
-# 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
-# 	    indx = quantile(Categorical(palpha), s)
-# 	    supps[k, indx]
-# 	end
+	function c_ik(i, k, x, s)
+	    supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
+	end
 
-# 	function c_ki(k, i x, s)
-# 	    supps[k, i] > x ? s/(1-s) * (supps[k, i] - x) : (x - suppsk, i])
-# 	end
-
-# 	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, k, ss[k]) for k = 1:K]
-# 	cs = [x->c_ki(k, i, x, ss[k]) for i = 1:size(supps, 2), k = 1:K]
-# 	cs, xs
-# end
+	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, k, s) for k = 1:K]
+	cs = [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
+	cs, xs
+end
