@@ -198,3 +198,26 @@ function genNewsvendors(supp, ss, K)
 	cs, xs
 end
 
+# ###  
+# #Convenience functions to generate a sequence of newsvendor problems
+# #  each with its own support, potentially different service levels    
+# #  assumes supp K x d, each row is ordered vector of Reals
+# # returns cs, xs
+# function genNewsvendorsDiffSupp(supps, ss, K)
+
+# 	#Generic computation of the sth quantile 
+# 	function x_k(p0, alpha, mhat_k, k, s) 
+# 	    const Nhat_k = sum(mhat_k)
+# 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
+# 	    indx = quantile(Categorical(palpha), s)
+# 	    supps[k, indx]
+# 	end
+
+# 	function c_ki(k, i x, s)
+# 	    supps[k, i] > x ? s/(1-s) * (supps[k, i] - x) : (x - suppsk, i])
+# 	end
+
+# 	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, k, ss[k]) for k = 1:K]
+# 	cs = [x->c_ki(k, i, x, ss[k]) for i = 1:size(supps, 2), k = 1:K]
+# 	cs, xs
+# end

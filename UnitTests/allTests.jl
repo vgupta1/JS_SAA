@@ -3,6 +3,7 @@ using Base.Test
 using Distributions
 
 include("../src/JS_SAA_main.jl")
+include("consts.jl")
 
 @testset "All Tests" begin 
 
@@ -54,11 +55,32 @@ end
 	@test isapprox(alphaLOO, 11.139240506329115)
 	@test jstar == 12
 
-
-
-
-
 end
+
+@testset "genNewsvendorFunctions" begin
+ 	srand(8675309)
+	const K = 20
+	supp = collect(1:10)
+	p0 = rand(10)
+	p0 /= sum(p0)  
+	alpha = .12
+	pk = ones(10)/10  #unif distribution
+	mhat = JS.sim_path(pk, 8)
+
+	cs, xs = JS.genNewsvendors(supp, rand(K), K)
+	sols = [x(p0, alpha, mhat) for x in xs]
+	for ix = 1:length(sols)
+		@test isapprox(sols[ix], cSols[ix])
+	end
+
+	#evaluate all the costs at x = 5
+	costs = zeros(K)
+	for k = 1:K
+		costs[k] = dot(mhat/8, [cs[ix, k](5) for ix = 1:10])
+		@test isapprox(costs[k], cCosts[k])
+	end
+
+end #end genNewsNvendor Functions
 
 end #all tests
 
