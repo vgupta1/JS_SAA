@@ -12,7 +12,8 @@ const param_path = "../RossmanKaggleData/Results/"
 const numRuns = parse(Int, ARGS[1])
 const d = parse(Int, ARGS[3])
 
-println(spath)
+K_grid = collect(100:100:1000)
+outPath = "$(spath)_Rossman_$(maximum(K_grid))_$(d)_$(4*numRuns)"
 
 #First read in the data and parse it appropriately
 #Do this on a single processor bc it should be fast.
@@ -23,13 +24,6 @@ ps_full = counts ./ sum(counts, 1)
 
 supp_full = readcsv("../RossmanKaggleData/Results/support$(d).csv")
 supp_full = convert(Array{Float64, 2}, supp_full[2:end, 2:end]')
-
-##VG Add a sanity check file that dumps the problem parameters.  
-
-K_grid = [10, 100, 1000]
-outPath = "$(spath)_Rossman_$(maximum(K_grid))_$(d)_$(4*numRuns)"
-
-convInKtest(numRuns, K_grid, supp_full, ps_full, outPath)
 
 tic()
 file_a = @spawn convInKtest(numRuns, K_grid, supp_full, ps_full, "$(outPath)_a_", seed=8675309)
