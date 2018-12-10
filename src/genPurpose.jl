@@ -207,7 +207,7 @@ function genNewsvendorsDiffSupp(supps, s, K)
 	    const Nhat_k = sum(mhat_k)
 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
 	    indx = quantile(Categorical(palpha), s)
-	    supps[k, indx]
+	    supps[indx, k]
 	end
 
 	function c_ik(i, k, x, s)
