@@ -67,23 +67,29 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath;
 			t = toc()
 			writecsv(f, [iRun K d "SAA" perf_SAA t 0.0])
 
-			#Gen the Oracle const
+			#Gen the Oracle cost with 1/d anchor
 			tic()
 			alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
 			t = toc()
 			writecsv(f, [iRun K d "Oracle" or_alpha_curve[min_indx] t alphaOR])
 
-			#Gen the LOO cost with 1/d shrinkage
+			#Gen the LOO cost with 1/d anchor
 			tic()
 			alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
 			t = toc()
 			writecsv(f, [iRun K d "LOO_unif" or_alpha_curve[min_indx] t alphaLOO])
 
-			#Gen the LOO cost with the phatAvg shrinkage
+			#Gen the Oracle cost with GM Anchor
+			tic()
+			alphaOR_GM, min_indx, or_alpha_curve_GM = JS.oracle_alpha(xs, cs, mhats, ps, lams, phat_avg, alpha_grid)
+			t = toc()
+			writecsv(f, [iRun K d "OraclePhat" or_alpha_curve_GM[min_indx] t alphaOR_GM])
+
+			#Gen the LOO cost with the GM Anchor
 			tic()
 			alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
 			t = toc()
-			writecsv(f, [iRun K d "LOO_avg" or_alpha_curve[min_indx] t alphaLOO])
+			writecsv(f, [iRun K d "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO])
 
 		end  #end K Loop
 		flush(f)
