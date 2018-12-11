@@ -64,20 +64,20 @@ end
 #for large K this is like AlphaOR for MSE
 #for now, super lazy and just search a grid.
 #returns minimizingAlphaIndex, and AlphaEstimate
-function mse_estimates(mhats, supp, p0, alpha_grid)
+function mse_estimates(mhats, supps, p0, alpha_grid)
 	const K = size(mhats, 2)
 	Nhats = sum(mhats, 1)
 	phats = mhats ./ Nhats
-	const mu0 = dot(p0, supp)
+	mu0s = vec(p0' * supps)
 
 	#summary statistics
 	muhats = Vector{Float64}(K)
 	sigmas = Vector{Float64}(K)
 	mse0 = Vector{Float64}(K)
 	for k = 1:K
-		muhats[k] = dot(phats[:, k], supp)
-		sigmas[k] = dot(phats[:, k], supp.^2) - muhats[k]^2
-		mse0[k] = dot(phats[:, k], @.((supp - mu0)^2) )
+		muhats[k] = dot(phats[:, k], supps[:, k])
+		sigmas[k] = dot(phats[:, k], supps[:, k].^2) - muhats[k]^2
+		mse0[k] = dot(phats[:, k], @.((supps[:, k] - mu0s[k])^2) )
 	end
 
 	#worker function
