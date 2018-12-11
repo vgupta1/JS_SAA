@@ -36,12 +36,11 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 
 	for iRun = 1:numRuns
 		#simulate data for the run
-		Nhats_full = usePoisson ? rand(Poisson(N), Kmax) : ones(Kmax) * N
-		mhats_full = JS.sim_path(ps_full, Nhats_full)
-
+		Nhats_full = usePoisson ? rand(Poisson(N), Kmax) : N * ones(Int, Kmax) 
 		#for now, cludge the Nhatk == 0 issue
 		Nhats_full[Nhats_full .== 0] = 1
-	
+		mhats_full = JS.sim_path(ps_full, Nhats_full)
+
 		for K in K_grid
 			#Take views on evrything for simplicity
 			lams = view(lam_full, 1:K)
@@ -53,7 +52,6 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 			xs = view(xs_full, 1:K)
 
 			#for data-driven shrinkage anchor
-			println("phat_avg")
 			phat_avg = vec(mean(mhats ./ Nhats', 2))
 
 			#Compute the full-info value once for reference

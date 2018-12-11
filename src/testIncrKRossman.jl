@@ -5,16 +5,18 @@
 #passed arguments 
 	#ARGS[1] is numRuns
 	#ARGs[2] is partial path for output.  
-	#ARGS[3] is 
+	#ARGS[3] is d  
+	#ARGS[4] is N
+	#Args[5] is bool for using the poisson amount of data assumption.
 
+const numRuns = parse(Int, ARGS[1])
 const spath = ARGS[2]
 const param_path = "../RossmanKaggleData/Results/"
-const numRuns = parse(Int, ARGS[1])
 const d = parse(Int, ARGS[3])
 const N = parse(Int, ARGS[4])
-const s = .95
 const usePoisson = parse(Bool, ARGS[5])
 
+const s = .95
 K_grid = collect(100:100:1000)
 outPath = "$(spath)_Ross_$(maximum(K_grid))_$(d)_$(N)_$(s)_$(usePoisson)_$(4*numRuns)"
 

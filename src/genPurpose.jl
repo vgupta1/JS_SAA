@@ -18,11 +18,22 @@ function shrink(phat_k, p0, alpha, Nhat_k)
 end
 
 function sim_path(p_k, N::Int)
+	@assert N > 0 "Something weird"
     mhats_k = zeros(length(p_k))
     for j in rand(Categorical(p_k), N)
         mhats_k[j] += 1
     end
     mhats_k
+end
+
+#ps is a matrix of pk
+function sim_path(ps, Nhats)
+    K = size(ps, 2)
+    out = zeros(size(ps))
+    for k = 1:K
+        out[:, k] = sim_path(ps[:, k], Nhats[k])
+    end
+    out    
 end
 
 #empirical bayes moment-matched estimates. 
@@ -80,16 +91,6 @@ function mse_estimates(mhats, supp, p0, alpha_grid)
 	end
 	out = map(mse, alpha_grid)
 	indmin(out), alpha_grid[indmin(out)]
-end
-
-#ps is a matrix of pk
-function sim_path(ps, Nhats)
-    K = size(ps, 2)
-    out = zeros(size(ps))
-    for k = 1:K
-        out[:, k] = sim_path(ps[:, k], Nhats[k])
-    end
-    out    
 end
 
 function z_k(x_k, c_k, p0, alpha, mhat_k, ps_k, lam_k, lamavg)
