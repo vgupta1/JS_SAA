@@ -68,13 +68,6 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 			t = toq()
 			writecsv(f, [iRun K d "SAA" perf_SAA t 0.0])
 
-			##MSE version of alpha
-			tic()
-			alphaMSE = JS.mse_estimates(mhats, supp, p0, alpha_grid)[2]
-			perf_MSE = JS.zbar(xs, cs, p0, alphaMSE, mhats, ps, lams)
-			t = toq()
-			writecsv(f, [iRun K d "MSE" perf_MSE t alphaMSE])
-
 			#Gen the Oracle cost with 1/d anchor
 			tic()
 			alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
@@ -87,6 +80,12 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 			t = toq()
 			writecsv(f, [iRun K d "LOO_unif" or_alpha_curve[min_indx] t alphaLOO])
 
+			##MSE version of alpha
+			tic()
+			alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
+			t = toq()
+			writecsv(f, [iRun K d "MSE" or_alpha_curve[min_indx] t alphaMSE])
+
 			#Gen the Oracle cost with GM Anchor
 			tic()
 			alphaOR_GM, min_indx, or_alpha_curve_GM = JS.oracle_alpha(xs, cs, mhats, ps, lams, phat_avg, alpha_grid)
@@ -98,6 +97,12 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 			alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
 			t = toq()
 			writecsv(f, [iRun K d "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO])
+
+			##MSE version of alpha with GM
+			tic()
+			alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
+			t = toq()
+			writecsv(f, [iRun K d "MSE" or_alpha_curve_GM[min_indx] t alphaMSE])
 
 		end  #end K Loop
 		flush(f)

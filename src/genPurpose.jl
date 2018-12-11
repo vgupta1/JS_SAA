@@ -63,7 +63,7 @@ end
 #solves an approximation to the Apriori MSE equation for alpha
 #for large K this is like AlphaOR for MSE
 #for now, super lazy and just search a grid.
-#returns minimizingAlphaIndex, and AlphaEstimate
+#returns AlphaEstimate, minimizingAlphaIndex 
 function mse_estimates(mhats, supps, p0, alpha_grid)
 	const K = size(mhats, 2)
 	Nhats = sum(mhats, 1)
@@ -90,7 +90,7 @@ function mse_estimates(mhats, supps, p0, alpha_grid)
 		out/K
 	end
 	out = map(mse, alpha_grid)
-	indmin(out), alpha_grid[indmin(out)]
+	alpha_grid[indmin(out)], indmin(out)
 end
 
 function z_k(x_k, c_k, p0, alpha, mhat_k, ps_k, lam_k, lamavg)
