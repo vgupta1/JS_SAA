@@ -17,7 +17,7 @@ const N = parse(Int, ARGS[4])
 const usePoisson = parse(Bool, ARGS[5])
 
 const s = .95
-K_grid = collect(100:100:1000)
+K_grid = vcat(1, collect(10:10:90), collect(100:100:1000), 1115)
 outPath = "$(spath)_Ross_$(maximum(K_grid))_$(d)_$(N)_$(s)_$(usePoisson)_$(4*numRuns)"
 
 #First read in the data and parse it appropriately
