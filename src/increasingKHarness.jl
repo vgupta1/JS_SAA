@@ -38,6 +38,8 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 		Nhats_full = usePoisson ? rand(Poisson(N), Kmax) : ones(Kmax) * N
 		mhats_full = JS.sim_path(ps_full, Nhats_full)
 
+		@assert minimum(Nhats_full) > 0 "Nhats has a zero"
+
 		for K in K_grid
 			#Take views on evrything for simplicity
 			lams = view(lam_full, 1:K)

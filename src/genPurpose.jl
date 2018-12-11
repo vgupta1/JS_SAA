@@ -10,7 +10,12 @@
 
 #General purpose functions
 ###
-shrink(phat_k, p0, alpha, Nhat_k) = @. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
+function shrink(phat_k, p0, alpha, Nhat_k)
+	if Nhat_k <= 0
+		return p0
+	end
+	@. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
+end
 
 function sim_path(p_k, N::Int)
     mhats_k = zeros(length(p_k))
@@ -96,7 +101,7 @@ end
 #actually returns zLOO_k * N * lamavg
 function zLOO_k_unsc(x_k, c_k, p0, alpha, mhat_k)
 	out = 0.
-	mhatloo = mhat_k[:]
+	mhatloo = mhat_k[:] #copy data
 	#only compute for terms where mhat_k[i] > 0
 	for i = 1:length(mhat_k)
 		if mhat_k[i] > 0
@@ -206,6 +211,15 @@ function genNewsvendorsDiffSupp(supps, s, K)
 	function x_k(p0, alpha, mhat_k, k, s) 
 	    const Nhat_k = sum(mhat_k)
 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
+	    if ! isapprox(sum(palpha), 1)
+	    	println("P is not a probaiblity")
+	    	println("N $(Nhat_k) \t alpha $(alpha)")
+	    	println("p0")
+	    	println(p0)
+	    	println("palpha")
+	    	println(palpha)
+	    	throw()
+	    end
 	    indx = quantile(Categorical(palpha), s)
 	    supps[indx, k]
 	end
