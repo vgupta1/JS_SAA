@@ -9,15 +9,14 @@ include("../src/JS_SAA_main.jl")
 
 #supp_full, ps_full are d x K matrices with true info per problem
 #adds new subproblems in order appear in files
-function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath; 
+#s is the service level, N is the average amount of data per problem
+function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s; 
 						usePoisson=true, seed=8675309)
 	const Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
 	@assert size(supp_full) == size(ps_full) "supp_full and ps_full have incompatible dimensions"
 
 	const d = size(supp_full, 1)
-	const s = .95
-	const N = 20
 
 	#For safety, trim inputs to size Kmax
 	supp_full = view(supp_full, 1:d, 1:Kmax)
