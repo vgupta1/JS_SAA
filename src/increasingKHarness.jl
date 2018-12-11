@@ -12,6 +12,7 @@ include("../src/JS_SAA_main.jl")
 #s is the service level, N is the average amount of data per problem
 function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s; 
 						usePoisson=true, seed=8675309)
+	srand(seed)
 	const Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
 	@assert size(supp_full) == size(ps_full) "supp_full and ps_full have incompatible dimensions"
@@ -38,8 +39,9 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 		Nhats_full = usePoisson ? rand(Poisson(N), Kmax) : ones(Kmax) * N
 		mhats_full = JS.sim_path(ps_full, Nhats_full)
 
-		@assert minimum(Nhats_full) > 0 "Nhats has a zero"
-
+		#for now, cludge the Nhatk == 0 issue
+		Nhats_full[Nhats_full .== 0] = 1
+	
 		for K in K_grid
 			#Take views on evrything for simplicity
 			lams = view(lam_full, 1:K)
@@ -51,6 +53,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N, s;
 			xs = view(xs_full, 1:K)
 
 			#for data-driven shrinkage anchor
+			println("phat_avg")
 			phat_avg = vec(mean(mhats ./ Nhats', 2))
 
 			#Compute the full-info value once for reference

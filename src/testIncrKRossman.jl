@@ -57,12 +57,6 @@ data_t = readcsv(file_d, skipstart=1)
 data_t[:, 1] += 3numRuns
 data = vcat(data, data_t)
 
-#strip the name of file_a to make the numbers better
-# println("Filea \t", file_a)
-# println("spath \t", spath)
-
-# indx = search(file_a, spath)[end] + 1
-
 f = open("$(outPath).csv", "w")
 writecsv(f, header)
 writecsv(f, data)
