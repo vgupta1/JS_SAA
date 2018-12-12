@@ -212,15 +212,6 @@ function genNewsvendorsDiffSupp(supps, s, K)
 	function x_k(p0, alpha, mhat_k, k, s) 
 	    const Nhat_k = sum(mhat_k)
 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
-	    if ! isapprox(sum(palpha), 1)
-	    	println("P is not a probaiblity")
-	    	println("N $(Nhat_k) \t alpha $(alpha)")
-	    	println("p0")
-	    	println(p0)
-	    	println("palpha")
-	    	println(palpha)
-	    	throw()
-	    end
 	    indx = quantile(Categorical(palpha), s)
 	    supps[indx, k]
 	end
