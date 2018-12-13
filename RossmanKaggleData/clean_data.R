@@ -25,13 +25,20 @@ dat <- dat %>% mutate(Month = lubridate::month(Date),
 
 #Should we throw away december?
 #Seemingly in some stores there is a strong effect, others not
-dat %>% filter(Store == 307, 
-               Date <= "2015-01-01", 
-               Date >= "2014-01-01") %>%
+dat %>% filter(Store == 307,
   ggplot(aes(Date, Sales)) + geom_point()
+
+dat %>% filter(Store < 10) %>% 
+  ggplot(aes(Date, Sales, group=Store, color=as.factor(Store))) + 
+  geom_smooth(method="lm") + 
+  geom_smooth(linetype="dotted")
+
+salesByTime.lm <- lm(Sales~Date, data=dat)
 
 #double check with a linear gression
 salesByMonth.lm <- lm(Sales ~ Year + as.factor(Month), data=dat)
+
+
 
 #There are time trends, but most significant seems to be in December
 #Also a 2-3% growh per year, maybe due to GDP?
