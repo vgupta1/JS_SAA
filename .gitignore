@@ -5,3 +5,4 @@ deps/deps.jl
 .Rproj.user
 *.csv
 *.zip
+*.pdf
