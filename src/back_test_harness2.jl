@@ -4,7 +4,7 @@
 # For increasing K, 
 #  Look at N consecutive days of data
 #  Compute various methods
-#  Record output
+#  Record output by looking at the very next day ONLY
 ###
 using Distributions
 include("../src/JS_SAA_main.jl")
@@ -14,8 +14,8 @@ include("../src/JS_SAA_main.jl")
 #dates is the associated dates
 #adds new subproblems in order appear in files
 #s is the service level, N is the average amount of data per problem
-function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath, N_grid, s;
-					onlySAA = false)
+function back_test2(K_grid, supp_full, ps_full, binned_data_full, dates, outPath, N_grid, s;
+					onlySAA = false, numTestDays=10)
 	const Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
 	@assert size(supp_full) == size(ps_full) "supp_full and ps_full have incompatible dimensions"
@@ -41,12 +41,12 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 
 	for N in N_grid
 		for ix_start = 1:N:numDataPoints
-			#skip if partial window
-			if ix_start + N - 1 > numDataPoints
+			#skip if partial window for training or test
+			if ix_start + N + numTestDays - 1 > numDataPoints
 				continue
 			end
 
-			#compute the counts for each subproblem 
+			#compute Training Data
 			#within the window
 			#Throw away NA's 
 			mhats_full = zeros(Int, d, Kmax)
@@ -59,20 +59,35 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 				end
 			end
 
-			#complain if we have subproblems with no data
 			Nhats_full = vec(sum(mhats_full, 1))
 			@assert length(Nhats_full) == Kmax	
+
+			#build the out of sample training set
+			mhats_out_full = zeros(Int, d, Kmax)
+			for k = 1:Kmax			
+				for i = 1:numTestDays
+					if binned_data[ix_start + N + i - 1, k] == "NA"
+						continue
+					else
+						mhats_out_full[binned_data[ix_start + N + i - 1, k], k] += 1
+					end
+				end
+			end
 
 			for K in K_grid
 				println("($(N), $(ix_start), $(K))")
 				#Take views on evrything for simplicity
 				lams = view(lam_full, 1:K)
 				supp = view(supp_full, 1:d, 1:K)
-				ps = view(ps_full, 1:d, 1:K)
 				Nhats = view(Nhats_full, 1:K)
 				mhats = view(mhats_full, 1:d, 1:K)
 				cs = view(cs_full, 1:d, 1:K)
 				xs = view(xs_full, 1:K)
+				mhats_out = view(mhats_out_full, 1:d, 1:K)
+
+				N_out = sum(mhats_out, 1)
+				ps = mhats_out ./ N_out
+				ps[:, vec(N_out) .== 0] = 0.
 
 				#for data-driven shrinkage anchor
 				#problems with no data do not contribute to the anchor
@@ -85,22 +100,17 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 				end
 
 				#Compute the full-info value once for reference
-				if ix_start == 1
-					tic()
-					full_info = JS.zstar(xs, cs, ps, lams)
-					t = toq()
-					writecsv(f, [dates[ix_start] K d N "FullInfo" full_info t 0.])
-				end
+				tic()
+				full_info = JS.zstar(xs, cs, ps, lams)
+				t = toq()
+				writecsv(f, [dates[ix_start] K d N "FullInfo" full_info t 0.])
 
 				#SAA
 				tic()
 				perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
+
 				t = toq()
 				writecsv(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0])
-
-				if onlySAA
-					continue
-				end			
 
 				#Gen the Oracle cost with 1/d anchor
 				tic()

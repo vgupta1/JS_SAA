@@ -56,9 +56,6 @@ function eb_mm_estimates(mhats)
 	const Nbar = mean(Nhats)
 	const var_n = mean( @.(Nhats^2 - Nhats) )
 
-	println(C0)
-	println(var_n)
-
 	alpha0 = C0 - sq_norm_p0 * var_n - Nbar
 	@assert alpha0 > 0 "Moment matching fails"
 	alpha0 /= (1 - sq_norm_p0) / var_n

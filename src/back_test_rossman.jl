@@ -3,7 +3,7 @@
 	#ARGS[1] is partial path for output.  
 	#ARGS[2] is d.  must be one of 20, 50, 1000
 
-include("back_test_harness.jl")
+include("back_test_harness2.jl")
 
 const spath = ARGS[1]
 const param_path = "../RossmanKaggleData/Results/"
@@ -11,12 +11,12 @@ const d = parse(Int, ARGS[2])
 const s = .95
 
 K_grid = vcat(1, collect(10:10:90), collect(100:100:1000), 1115)
-N_grid = [10, 20, 40]
-#N_grid = collect(10:10:100)
-# K_grid = [100, 200]
+N_grid = [10, 20]
+#K_grid = [1115]
+# K_grid = vcat(collect(100:100:1000), 1115)
+N_grid = [10]
 
-
-outPath = "$(spath)_RossBacktest_$(maximum(K_grid))_$(d)_$(s)_$(4*maximum(N_grid))"
+outPath = "$(spath)_RossBacktest_$(maximum(K_grid))_$(d)_$(s)_$(maximum(N_grid))"
 
 #First read in the data and parse it appropriately
 #Do this on a single processor bc it should be fast.
@@ -25,12 +25,14 @@ supp_full = readcsv("../RossmanKaggleData/Results/support$(d).csv")
 
 @assert minimum(ps_full) >=0 "ps_full has negative entries"
 
-tdata = readcsv("../RossmanKaggleData/Results/AdjSalesByStore_Binned$(d).csv")
+#Load shuffled data
+tdata = readcsv("../RossmanKaggleData/Results/AdjSales_NoWeekends_Binned$(d).csv")
+
 binned_data = tdata[2:end, 2:end]  #column header = sotres, row header = dates
 dates= tdata[2:end, 1] 
 
 tic()
-back_test(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s)
+back_test2(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=1)
 toc()
 
 # tic()
