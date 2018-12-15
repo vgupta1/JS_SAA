@@ -2,11 +2,12 @@
 #passed arguments 
 	#ARGS[1] is partial path for output.  
 	#ARGS[2] is d.  must be one of 20, 50, 1000
+	#ARGS[3] specifies the data stub:  one of AdjSales_NoWeekends, AdjSales_NoWeekends_RowShuffle, etc.
 
 include("back_test_harness2.jl")
 
 const spath = ARGS[1]
-const param_path = "../RossmanKaggleData/Results/"
+const param_path = ARGS[3] #"../RossmanKaggleData/Results/"
 const d = parse(Int, ARGS[2])
 const s = .95
 
@@ -26,13 +27,13 @@ supp_full = readcsv("../RossmanKaggleData/Results/support$(d).csv")
 @assert minimum(ps_full) >=0 "ps_full has negative entries"
 
 #Load shuffled data
-tdata = readcsv("../RossmanKaggleData/Results/AdjSales_NoWeekends_Binned$(d).csv")
+tdata = readcsv("../RossmanKaggleData/Results/$(param_path)_Binned$(d).csv")
 
 binned_data = tdata[2:end, 2:end]  #column header = sotres, row header = dates
 dates= tdata[2:end, 1] 
 
 tic()
-back_test2(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=1)
+back_test2(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
 toc()
 
 # tic()
