@@ -25,13 +25,8 @@ outPath = "$(spath)_RossN_$(maximum(K_grid))_$(d)_$(s)_$(usePoisson)_$(4*numRuns
 
 #First read in the data and parse it appropriately
 #Do this on a single processor bc it should be fast.
-counts = readcsv("../RossmanKaggleData/Results/counts$(d).csv")
-counts[ counts .== "NA" ] = 0  #R still dumps empties...
-counts = convert(Array{Int64, 2}, counts[2:end, 2:end]')
-ps_full = counts ./ sum(counts, 1)
-
+ps_full = readcsv("../RossmanKaggleDataResults/ps_full$(d).csv")
 supp_full = readcsv("../RossmanKaggleData/Results/support$(d).csv")
-supp_full = convert(Array{Float64, 2}, supp_full[2:end, 2:end]')
 
 tic()
 file_a = @spawn convInKtest(numRuns, K_grid, supp_full, ps_full, "$(outPath)_a_", N_grid, s, seed=8675309, usePoisson=usePoisson)

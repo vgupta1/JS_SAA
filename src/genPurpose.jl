@@ -17,6 +17,13 @@ function shrink(phat_k, p0, alpha, Nhat_k)
 	@. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
 end
 
+#need to be careful because some problem smay have zero data
+function get_GM_anchor(mhats)
+	Nhats = vec(sum(mhats, 1))
+	non_zero_indx = Nhats .> 0
+	vec(mean(mhats[:, non_zero_indx] ./ Nhats[non_zero_indx]', 2))
+end
+
 function sim_path(p_k, N::Int)
 	@assert N > 0 "Something weird"
     mhats_k = zeros(length(p_k))
@@ -48,9 +55,6 @@ function eb_mm_estimates(mhats)
 	const sq_norm_p0 = norm(p0)^2
 	const Nbar = mean(Nhats)
 	const var_n = mean( @.(Nhats^2 - Nhats) )
-
-	println(C0)
-	println(var_n)
 
 	alpha0 = C0 - sq_norm_p0 * var_n - Nbar
 	@assert alpha0 > 0 "Moment matching fails"
@@ -104,17 +108,20 @@ function zLOO_k_unsc(x_k, c_k, p0, alpha, mhat_k)
 	out = 0.
 	mhatloo = mhat_k[:] #copy data
 	#only compute for terms where mhat_k[i] > 0
+	#compute a base solution to resuse as necessary
+	x_base = x_k(p0, alpha, mhat_k)
 	for i = 1:length(mhat_k)
-		if mhat_k[i] > 0
-		   mhatloo[i] -= 1	
-		end
-
 		#correct previous toggle
 		if i > 1 && mhat_k[i - 1] > 0
 			mhatloo[i - 1] += 1
 		end
 
-		x = x_k(p0, alpha, mhatloo)
+		if mhat_k[i] > 0
+			mhatloo[i] -= 1	
+		    x = x_k(p0, alpha, mhatloo)
+		else 
+			x = x_base
+		end
 		out += mhat_k[i] * c_k[i](x)
 	end
 	out
@@ -180,29 +187,30 @@ function loo_alpha(xs, cs, mhats, p0, alpha_grid)
 end	
 
 ###  
+#### Deprecated
 #Convenience functions to generate a sequence of newsvendor problems
 #  with common support, potentially different service levels    
 #  assumes supp is ordered vector of Reals
 # returns cs, xs
-function genNewsvendors(supp, ss, K)
-	@assert issorted(supp) "Supp must be an ordered vector"
+# function genNewsvendors(supp, ss, K)
+# 	@assert issorted(supp) "Supp must be an ordered vector"
 
-	#Generic computation of the sth quantile 
-	function x_k(p0, alpha, mhat_k, s) 
-	    const Nhat_k = sum(mhat_k)
-	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
-	    indx = quantile(Categorical(palpha), s)
-	    supp[indx]
-	end
+# 	#Generic computation of the sth quantile 
+# 	function x_k(p0, alpha, mhat_k, s) 
+# 	    const Nhat_k = sum(mhat_k)
+# 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
+# 	    indx = quantile(Categorical(palpha), s)
+# 	    supp[indx]
+# 	end
 
-	function c_ik(i, x, s)
-	    supp[i] > x ? s/(1-s) * (supp[i] - x) : (x - supp[i])
-	end
+# 	function c_ik(i, x, s)
+# 	    supp[i] > x ? s/(1-s) * (supp[i] - x) : (x - supp[i])
+# 	end
 
-	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, ss[k]) for k = 1:K]
-	cs = [x->c_ik(i, x, ss[k]) for i = 1:length(supp), k = 1:K]
-	cs, xs
-end
+# 	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, ss[k]) for k = 1:K]
+# 	cs = [x->c_ik(i, x, ss[k]) for i = 1:length(supp), k = 1:K]
+# 	cs, xs
+# end
 
 ###  
 # Ideally should have a broadcast implementaiton that combines
@@ -212,15 +220,13 @@ function genNewsvendorsDiffSupp(supps, s, K)
 	function x_k(p0, alpha, mhat_k, k, s) 
 	    const Nhat_k = sum(mhat_k)
 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
-	    if ! isapprox(sum(palpha), 1)
-	    	println("P is not a probaiblity")
-	    	println("N $(Nhat_k) \t alpha $(alpha)")
-	    	println("p0")
-	    	println(p0)
-	    	println("palpha")
-	    	println(palpha)
-	    	throw()
+	    if !isapprox(sum(palpha), 1) || sum(mhat_k .< 0) > 0 
+	    	println("Nhat_k:\t", Nhat_k)
+	    	println("alpha:\t", alpha)
+	    	println("mhat_k:\n", mhat_k)
+	    	println("phat_k:\n", palpha)
 	    end
+
 	    indx = quantile(Categorical(palpha), s)
 	    supps[indx, k]
 	end
@@ -232,4 +238,24 @@ function genNewsvendorsDiffSupp(supps, s, K)
 	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, k, s) for k = 1:K]
 	cs = [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
 	cs, xs
+end
+
+#### Helper function for binning data
+#dat_vec is vector of actual realizations
+#computes a grid of size d
+#returns 
+	#d vector of lefthand binpoints 
+	#d vector of counts
+	#raw histogram object for safety
+#assumes NA's already filtered from calcualtion
+function bin_data(dat_vec, d; TOL = .001)
+	#Explicitly make bins to prevent histogram from rounding
+	const l = minimum(dat_vec)
+	const u = maximum(dat_vec)
+	bin_width = (u - l)/d
+    bin_edges = collect(linspace(l, u, d + 1))
+    bin_edges[end] += TOL * bin_width  #inflate the last one a little...
+    bin_edges[1] -= TOL * bin_width
+    dat_hist = fit(Histogram, dat_vec, bin_edges, closed =:left)
+    bin_edges[1:d], dat_hist.weights, dat_hist    
 end
