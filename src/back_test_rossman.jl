@@ -1,7 +1,7 @@
 #julia -L back_test_harness.jl back_test_rossman.jl outPathStub d
 #passed arguments 
 	#ARGS[1] is partial path for output.  
-	#ARGS[2] is d.  must be one of 20, 50, 1000
+	#ARGS[2] is d must be one of 20, 50, 1000
 	#ARGS[3] specifies the data stub:  one of AdjSales_NoWeekends, AdjSales_NoWeekends_RowShuffle, etc.
 
 include("back_test_harness2.jl")
@@ -12,7 +12,7 @@ const d = parse(Int, ARGS[2])
 const s = .95
 
 K_grid = vcat(1, collect(10:10:90), collect(100:100:1000), 1115)
-N_grid = [10, 20]
+N_grid = [10, 20, 40]
 #K_grid = [1115]
 # K_grid = vcat(collect(100:100:1000), 1115)
 N_grid = [10]

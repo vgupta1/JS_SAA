@@ -108,17 +108,20 @@ function zLOO_k_unsc(x_k, c_k, p0, alpha, mhat_k)
 	out = 0.
 	mhatloo = mhat_k[:] #copy data
 	#only compute for terms where mhat_k[i] > 0
+	#compute a base solution to resuse as necessary
+	x_base = x_k(p0, alpha, mhat_k)
 	for i = 1:length(mhat_k)
-		if mhat_k[i] > 0
-		   mhatloo[i] -= 1	
-		end
-
 		#correct previous toggle
 		if i > 1 && mhat_k[i - 1] > 0
 			mhatloo[i - 1] += 1
 		end
 
-		x = x_k(p0, alpha, mhatloo)
+		if mhat_k[i] > 0
+			mhatloo[i] -= 1	
+		    x = x_k(p0, alpha, mhatloo)
+		else 
+			x = x_base
+		end
 		out += mhat_k[i] * c_k[i](x)
 	end
 	out

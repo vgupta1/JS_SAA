@@ -63,7 +63,7 @@ function nv_saa_k(mhat_k, p0, alpha, Nhat_k, s)
 	if p_alpha > 1 - s #xk = 1
 		return Nhat_k - mhat_k
 	else #xk = 0
-		return s / (1 - s) * mhat_k
+		return s / (1 - s) * mhat_k  #Note, not scaling by Nhat_k!
 	end
 	return 0.  #never reached
 end
