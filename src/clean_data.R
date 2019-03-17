@@ -1,11 +1,11 @@
 ## Clean up the Rossman Data For analysis
-# Dataset 1:  Linear de-trend, and drop December, weekends.  permute the stores just for safety.
-# Dataset 2:  Permute rows of dataset 1 (keeps correlation of K, destroys days)
-# Dataset 3:  Shuffle within the columns of dataset 1 (breaks both correlation of k, and days)
-# Dataset 4:  Shuffle blocks of adjacent days within each column:  block length = 20.
-## After generating everything, pass to Julia to do the binning.  
+# AdjSales_NoWeekends.csv :  Linear de-trend, and drop December, weekends.  permute the stores just for safety.
+# AdjSales_NoWeekends_RowShuffle.csv :  Permute rows of dataset 1 (keeps correlation across stores, destroys days autocorrelation)
+# AdjSales_NoWeekends_ShuffleWithinCol.csv3:  Shuffle separately within the columns of dataset 1 (breaks both correlation of k, and days)
+# Dataset 4:  Shuffle blocks of adjacent days within each column:  block length = 20.  (not made here)
+## After generating everything, pass to Julia notebook BinningData.ipynb to do the binning  
 
-#Playing with the Rossman Data
+#Cleaning the Rossman Data
 library(tidyverse)
 library(ggplot2)
 library(broom)
@@ -30,13 +30,12 @@ dat <- filter(dat, Open == 1, !lubridate::wday(Date) %in% c(1, 7))
 #From this perspective, the trend looks pretty small...
 sales.lm <- lm(Sales~Date, data=dat)
 summary(sales.lm)
-#qplot(x=Date, y=AdjSales, data=dat) + geom_smooth(method="lm")
 beta = sales.lm$coefficients["Date"]
 anchorDate <- dat$Date[1]
 dat <- mutate(dat, 
               AdjSales = Sales - beta * as.double(Date- anchorDate))
 
-#just throw away December
+#Throw away December as christmas / holiday sales fairly a typical and many promotional sales
 dat <- dat %>% mutate(Month = lubridate::month(Date)) %>%
   filter(Month != 12) %>%
   select(-Month)
@@ -44,40 +43,36 @@ dat <- dat %>% mutate(Month = lubridate::month(Date)) %>%
 dat.AdjSales <- dat %>% select(Date, Store, AdjSales) %>%
                   spread(key=Store, value=AdjSales)
 
-#permute the order of the stores once just for safety.  
+#Permute the order of the stores once just for safety.  
 set.seed(8675309)
 dat.AdjSales <- dat.AdjSales[, c(1, sample(1115) + 1)]
 
-#dataset 1
+#dataset 1:  Just de-trended. 
 write_csv(dat.AdjSales, "../RossmanKaggleData/Results/AdjSales_NoWeekends.csv")
 
-#now do a row shuffle
+#Dataset 2 : Row shuffle
 #breaks any autocorrelations between days, maintains correlations between stores. 
 dat.AdjSales2 <- dat.AdjSales
 dat.AdjSales2[, 2:1116] <- dat.AdjSales2[sample(nrow(dat.AdjSales)), 2:1116]
-
-#dataset 2
 write_csv(dat.AdjSales2, "../RossmanKaggleData/Results/AdjSales_NoWeekends_RowShuffle.csv")
 
-# Shuffle independently within each column 
+#Dataset 3: Shuffle rows, each column shuffled independently
 dat.AdjSales2 <- dat.AdjSales
 shuff_all_cols <- function(df){
   df[, 2:ncol(df)] <- lapply(df[, 2:ncol(df)], sample)
   return(df)
 }
 dat.AdjSales2 <- shuff_all_cols(dat.AdjSales2)
-
-#dataset 3
 write_csv(dat.AdjSales2, "../RossmanKaggleData/Results/AdjSales_NoWeekends_ShuffleWithinCol.csv")
 
 #block shuffle
-### VG To do.  
+### To do.  
 
-
-#In Julia notebook (BinningData) , we bin the above data sets (discretize) for d= 20, 50, 1000
+#Julia notebook (BinningData), we bin the above data sets (discretize) for d= 20, 50, 1000
 #and compute relevant mhat for each.
 
 
+### VG To delete pre-submission.  
 # #Should we throw away december?
 # #Seemingly in some stores there is a strong effect, others not
 # dat %>% filter(Store == 307,
