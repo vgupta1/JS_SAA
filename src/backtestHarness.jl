@@ -6,7 +6,7 @@
 #  Compute various methods
 #  Evaluate on the ps induced by the entire time series
 ###
-using Distributions
+using Distributions, DelimitedFiles
 include("../src/JS_SAA_main.jl")
 
 #supp_full, ps_full are d x K matrices with true info per problem
@@ -33,7 +33,7 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 
 	#set up output file
 	f = open("$(outPath).csv", "w")
-	writecsv(f, ["StartDate" "K" "d" "N" "Method" "TruePerf" "time" "alpha"])
+	writedlm(f, ["StartDate" "K" "d" "N" "Method" "TruePerf" "time" "alpha"], ',')
 
 	#generate all Kmax subproblems upfront and store in memory
 	cs_full, xs_full = JS.genNewsvendorsDiffSupp(supp_full, s, Kmax)
@@ -60,7 +60,7 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 			end
 
 			#complain if we have subproblems with no data
-			Nhats_full = vec(sum(mhats_full, 1))
+			Nhats_full = vec(sum(mhats_full, dims=1))
 			@assert length(Nhats_full) == Kmax	
 
 			for K in K_grid
@@ -77,7 +77,7 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 				#for data-driven shrinkage anchor
 				#problems with no data do not contribute to the anchor
 				phat_avg = JS.get_GM_anchor(mhats)
-				if !isapprox(sum(phat_avg), 1) || minimum(phat_avg) < 0
+				if !isapprox(sum(phat_avg), dims=1) || minimum(phat_avg) < 0
 					println(phat_avg)
 					println(Nhats')
 					println(mhats)
@@ -86,57 +86,49 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 
 				#Compute the full-info value once for reference
 				if ix_start == 1
-					tic()
-					full_info = JS.zstar(xs, cs, ps, lams)
-					t = toq()
-					writecsv(f, [dates[ix_start] K d N "FullInfo" full_info t 0.])
+					t = 
+					 @elapsed full_info = JS.zstar(xs, cs, ps, lams)
+					writedlm(f, [dates[ix_start] K d N "FullInfo" full_info t 0.], ',')
 				end
 
 				#SAA
-				tic()
-				perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0])
+				t = 
+				 @elapsed perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
+				writedlm(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0], ',')
 
 				if onlySAA
 					continue
 				end			
 
 				#Gen the Oracle cost with 1/d anchor
-				tic()
-				alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "Oracle" or_alpha_curve[min_indx] t alphaOR])
+				t = 
+				  @elapsed alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "Oracle" or_alpha_curve[min_indx] t alphaOR], ',')
 
 				#Gen the LOO cost with 1/d anchor
-				tic()
-				alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO])
+				t = 
+				  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
 				##MSE version of alpha
-				tic()
-				alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "MSE" or_alpha_curve[min_indx] t alphaMSE])
+				t = 
+				  @elapsed alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "MSE" or_alpha_curve[min_indx] t alphaMSE], ',')
 
 				#Gen the Oracle cost with GM Anchor
-				tic()
-				alphaOR_GM, min_indx, or_alpha_curve_GM = JS.oracle_alpha(xs, cs, mhats, ps, lams, phat_avg, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "OraclePhat" or_alpha_curve_GM[min_indx] t alphaOR_GM])
+				t = 
+				  @elapsed alphaOR_GM, min_indx, or_alpha_curve_GM = JS.oracle_alpha(xs, cs, mhats, ps, lams, phat_avg, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "OraclePhat" or_alpha_curve_GM[min_indx] t alphaOR_GM], ',')
 
 				#Gen the LOO cost with the GM Anchor
-				tic()
-				alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO])
+				t = 
+				  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO], ',')
 
 				##MSE version of alpha with GM
-				tic()
-				alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "MSE" or_alpha_curve_GM[min_indx] t alphaMSE])
+				t = 
+				  @elapsed alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "MSE" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
 
 			end  #end K Loop
 			flush(f)

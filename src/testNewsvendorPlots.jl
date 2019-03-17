@@ -25,45 +25,40 @@ function runTest(numRuns, K, outPath)
 	f = open("$(outPath)_$(K)_$(numRuns).csv", "w")
 
 	#Header
-	writecsv(f, ["Run" "Method" "TruePerf" "time" "alpha"])
+	writedlm(f, ["Run" "Method" "TruePerf" "time" "alpha"], ',')
 
 	#Compute the full-info value once for reference
-	tic()
-	full_info = JS.zstar(xs, cs, ps, lams)
-	t = toc()
+	t =
+	  @elapsed full_info = JS.zstar(xs, cs, ps, lams)
 	println(full_info)
-	writecsv(f, [1 "FullInfo" full_info t 0.])
+	writedlm(f, [1 "FullInfo" full_info t 0.], ',')
 
 	for iRun = 1:numRuns
 		Nhats = rand(Poisson(N), K)
 		mhats = JS.sim_path(ps, Nhats);
 
 		#for data-driven shrinkage anchor
-		phat_avg = vec(mean(mhats ./ Nhats', 2))
+		phat_avg = vec(mean(mhats ./ Nhats', dims=2))
 	
 		#Gen the SAA const
-		tic()
-		perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
-		t = toc()
-		writecsv(f, [iRun "SAA" perf_SAA t 0.0])
+		t = 
+		  @elapsed perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
+		writedlm(f, [iRun "SAA" perf_SAA t 0.0], ',')
 
 		#Gen the Oracle const
-		tic()
-		alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
-		t = toc()
-		writecsv(f, [iRun "Oracle" or_alpha_curve[min_indx] t alphaOR])
+		t = 
+		  @elapsed alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
+		writedlm(f, [iRun "Oracle" or_alpha_curve[min_indx] t alphaOR], ',')
 
 		#Gen the LOO cost with 1/d shrinkage
-		tic()
-		alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
-		t = toc()
-		writecsv(f, [iRun "LOO_unif" or_alpha_curve[min_indx] t alphaLOO])
+		t = 
+		  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
+		writedlm(f, [iRun "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
 		#Gen the LOO cost with the phatAvg shrinkage
-		tic()
-		alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
-		t = toc()
-		writecsv(f, [iRun "LOO_avg" or_alpha_curve[min_indx] t alphaLOO])
+		t = 
+		  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
+		writedlm(f, [iRun "LOO_avg" or_alpha_curve[min_indx] t alphaLOO], ',')
 
 		flush(f)
 	end #endRun

@@ -1,10 +1,10 @@
-#julia -L rollingHarness.jl test_Rolling.jl outPathStub d
+#julia -L rollingHarness.jl test_Rolling.jl outPathStub d datastub
 #passed arguments 
 	#ARGS[1] is partial path for output.  
 	#ARGS[2] is d must be one of 20, 50, 1000
 	#ARGS[3] specifies the data stub:  one of AdjSales_NoWeekends, AdjSales_NoWeekends_RowShuffle, etc.
 
-include("back_test_harness2.jl")
+include("rollingHarness.jl")
 
 const spath = ARGS[1]
 const param_path = ARGS[3] # e.g. "AdjSales_NoWeekends"
@@ -16,22 +16,20 @@ const s = .95
 K_grid = vcat(1, collect(10:10:90), collect(100:100:1000), 1115)
 N_grid = [10, 20, 40]
 
-outPath = "$(spath)_RossBacktest_$(maximum(K_grid))_$(d)_$(s)_$(maximum(N_grid))"
+outPath = "$(spath)_RossRolling_$(s)_$(param_path)"
 
 #First read in the data and parse it appropriately
-ps_full = readcsv("../RossmanKaggleData/Results/ps_full$(d).csv")
-supp_full = readcsv("../RossmanKaggleData/Results/support$(d).csv")
+ps_full = readdlm("../RossmanKaggleData/CleanedData/ps_full$(d).csv", ',')
+supp_full = readdlm("../RossmanKaggleData/CleanedData/support$(d).csv", ',')
 
 @assert minimum(ps_full) >=0 "ps_full has negative entries"
 
 #Load shuffled data
-tdata = readcsv("../RossmanKaggleData/Results/$(param_path)_Binned$(d).csv")
+tdata = readdlm("../RossmanKaggleData/CleanedData/$(param_path)_Binned$(d).csv", ',')
 
 binned_data = tdata[2:end, 2:end]  #drop column header = stores, drop row header = dates
 dates= tdata[2:end, 1] #keep track of dates for fun
 
 #currently run single-threaded for ease
-tic()
-rollingTest(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
-toc()
+@elapsed rollingTest(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
 

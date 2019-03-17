@@ -6,7 +6,7 @@
 #  Compute various methods
 #  Record output by looking at performance on next numTestDays
 ###
-using Distributions
+using Distributions, DelimitedFiles
 include("../src/JS_SAA_main.jl")
 
 #supp_full, ps_full are d x K matrices with true info per problem
@@ -16,11 +16,11 @@ include("../src/JS_SAA_main.jl")
 #s is the service level, N is the average amount of data per problem
 function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPath, N_grid, s;
 					onlySAA = false, numTestDays=10)
-	const Kmax = maximum(K_grid)
+	Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
 	@assert size(supp_full) == size(ps_full) "supp_full and ps_full have incompatible dimensions"
-	const d = size(supp_full, 1)
-	const numDataPoints = size(binned_data_full, 1)
+	d = size(supp_full, 1)
+	numDataPoints = size(binned_data_full, 1)
 
 	#For safety, trim inputs to size Kmax
 	supp_full = view(supp_full, 1:d, 1:Kmax)
@@ -33,7 +33,7 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 
 	#set up output file
 	f = open("$(outPath).csv", "w")
-	writecsv(f, ["StartDate" "K" "d" "N" "Method" "TruePerf" "time" "alpha"])
+	writedlm(f, ["StartDate" "K" "d" "N" "Method" "TruePerf" "time" "alpha"], ',')
 
 	#generate all Kmax subproblems upfront and store in memory
 	cs_full, xs_full = JS.genNewsvendorsDiffSupp(supp_full, s, Kmax)
@@ -59,7 +59,7 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				end
 			end
 
-			Nhats_full = vec(sum(mhats_full, 1))
+			Nhats_full = vec(sum(mhats_full, dims=1))
 			@assert length(Nhats_full) == Kmax	
 
 			#build the out of sample training set
@@ -85,9 +85,9 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				xs = view(xs_full, 1:K)
 				mhats_out = view(mhats_out_full, 1:d, 1:K)
 
-				N_out = sum(mhats_out, 1)
+				N_out = sum(mhats_out, dims=1)
 				ps = mhats_out ./ N_out
-				ps[:, vec(N_out) .== 0] = 0.
+				ps[:, vec(N_out) .== 0] .= 0.
 
 				#for data-driven shrinkage anchor
 				#problems with no data do not contribute to the anchor
@@ -97,53 +97,44 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				end
 
 				#Compute the full-info value once for reference
-				tic()
-				full_info = JS.zstar(xs, cs, ps, lams)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "FullInfo" full_info t 0.])
+				t = 
+				  @elapsed full_info = JS.zstar(xs, cs, ps, lams)
+				writedlm(f, [dates[ix_start] K d N "FullInfo" full_info t 0.], ',')
 
 				#SAA
-				tic()
-				perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
-
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0])
+				t = 
+				  @elapsed perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
+				writedlm(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0], ',')
 
 				#Gen the Oracle cost with 1/d anchor
-				tic()
-				alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "Oracle" or_alpha_curve[min_indx] t alphaOR])
+				t = 
+				  @elapsed alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "Oracle" or_alpha_curve[min_indx] t alphaOR], ',')
 
 				#Gen the LOO cost with 1/d anchor
-				tic()
-				alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO])
+				t = 
+				  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
 				##MSE version of alpha
-				tic()
-				alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "MSE" or_alpha_curve[min_indx] t alphaMSE])
+				t = 
+				  @elapsed alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "MSE" or_alpha_curve[min_indx] t alphaMSE], ',')
 
 				#Gen the Oracle cost with GM Anchor
-				tic()
-				alphaOR_GM, min_indx, or_alpha_curve_GM = JS.oracle_alpha(xs, cs, mhats, ps, lams, phat_avg, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "OraclePhat" or_alpha_curve_GM[min_indx] t alphaOR_GM])
+				t = 
+				  @elapsed alphaOR_GM, min_indx, or_alpha_curve_GM = JS.oracle_alpha(xs, cs, mhats, ps, lams, phat_avg, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "OraclePhat" or_alpha_curve_GM[min_indx] t alphaOR_GM], ',')
 
 				#Gen the LOO cost with the GM Anchor
-				tic()
-				alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO])
+				t = 
+				  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO], ',')
 
 				##MSE version of alpha with GM
-				tic()
-				alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
-				t = toq()
-				writecsv(f, [dates[ix_start] K d N "MSE" or_alpha_curve_GM[min_indx] t alphaMSE])
+				t = 
+				  @elapsed alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
+				writedlm(f, [dates[ix_start] K d N "MSE" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
 
 			end  #end K Loop
 			flush(f)

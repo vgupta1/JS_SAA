@@ -19,9 +19,9 @@ end
 
 #need to be careful because some problem smay have zero data
 function get_GM_anchor(mhats)
-	Nhats = vec(sum(mhats, 1))
+	Nhats = vec(sum(mhats, dims=1))
 	non_zero_indx = Nhats .> 0
-	vec(mean(mhats[:, non_zero_indx] ./ Nhats[non_zero_indx]', 2))
+	vec(mean(mhats[:, non_zero_indx] ./ Nhats[non_zero_indx]', dims=2))
 end
 
 function sim_path(p_k, N::Int)
@@ -47,8 +47,8 @@ end
 #returns p0, alpha0
 #VG this method does not seem to consistenty yield alpha in [0, 1]
 function eb_mm_estimates(mhats)
-	Nhats = sum(mhats, 1)
-	p0 = mean(mhats ./ Nhats, 2)
+	Nhats = sum(mhats, dims=1)
+	p0 = mean(mhats ./ Nhats, dims=2)
 	K = size(mhats, 2)
 
 	C0 = sum(mhats.^2)/K
@@ -70,14 +70,14 @@ end
 #returns AlphaEstimate, minimizingAlphaIndex 
 function mse_estimates(mhats, supps, p0, alpha_grid)
 	K = size(mhats, 2)
-	Nhats = sum(mhats, 1)
+	Nhats = sum(mhats, dims=1)
 	phats = mhats ./ Nhats
 	mu0s = vec(p0' * supps)
 
 	#summary statistics
-	muhats = Vector{Float64}(K)
-	sigmas = Vector{Float64}(K)
-	mse0 = Vector{Float64}(K)
+	muhats = Vector{Float64}(undef, K)
+	sigmas = Vector{Float64}(undef, K)
+	mse0 = Vector{Float64}(undef, K)
 	for k = 1:K
 		muhats[k] = dot(phats[:, k], supps[:, k])
 		sigmas[k] = dot(phats[:, k], supps[:, k].^2) - muhats[k]^2
