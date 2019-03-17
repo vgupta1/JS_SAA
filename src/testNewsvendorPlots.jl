@@ -18,7 +18,7 @@ function runTest(numRuns, K, outPath)
 	ps = [ps rand(Dirichlet(3 * ones(d)), K - floor(Int, K/2)) ]
 	@assert size(ps, 2) == K
 	@assert size(ps, 1) == d
-	alpha_grid = linspace(0, 50, 75)
+	alpha_grid = range(0, stop=50, length=75)
 	lams = ones(K)
 
 	cs, xs = JS.genNewsvendors(collect(1:d), s * ones(K), K)

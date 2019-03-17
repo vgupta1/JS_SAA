@@ -13,20 +13,20 @@ nv_sim_path(ps, Ns) = @.sum(rand(Bernoulli(ps), Ns))
 
 #E[Z_k(alpha)], i.e. expected true obj at x(alpha)
 function exp_nv_obj_k(p, p0, alpha, Nhat_k, s)
-    const b = s / (1 - s)
+    b = s / (1 - s)
     (1 - p - b * p) * nv_prob_k(p, p0, alpha, Nhat_k, s) + b * p
 end
 
 #expected value of fullInfo solution
 function exp_nv_fullInfo_k(p, s) 
-	const b = s / (1 - s)
-	const xstar = p > 1 - s ? 1. : 0.
+	b = s / (1 - s)
+	xstar = p > 1 - s ? 1. : 0.
 	b * p + (1 - p - b * p) * xstar
 end
 
 #Z_k(alpha)..  mhat is # zeta-k == 1
 function nv_obj_k(mhat, p, p0, alpha, Nhat_k, s)
-	const p_alpha = shrink(mhat / Nhat_k, p0, alpha, Nhat_k)
+	p_alpha = shrink(mhat / Nhat_k, p0, alpha, Nhat_k)
 	if p_alpha > 1 - s #xk = 1
 		return 1 - p
 	else #xk = 0
@@ -59,7 +59,7 @@ end
 #this is a funny saa-ish term in the Loo-Stability decomposition
 #Returns Nint * saa-ish term.  
 function nv_saa_k(mhat_k, p0, alpha, Nhat_k, s)
-	const p_alpha = shrink(mhat_k/Nhat_k, p0, alpha, Nhat_k)
+	p_alpha = shrink(mhat_k/Nhat_k, p0, alpha, Nhat_k)
 	if p_alpha > 1 - s #xk = 1
 		return Nhat_k - mhat_k
 	else #xk = 0
@@ -73,7 +73,7 @@ end
 #returns alphaOR, minimizingAlphaIndex, curveInAlpha
 function nv_oracle_alpha(mhats, ps, p0, alpha_grid, Nhats, ss)
 	out = map(a-> nv_obj(mhats, ps, p0, a, Nhats, ss), alpha_grid)
-	jstar = indmin(out)
+	jstar = argmin(out)
 	return alpha_grid[jstar], jstar, out
 end
 
@@ -83,7 +83,7 @@ function nv_oracle_both(mhats, ps, p0_grid, alpha_grid, Nhats, ss)
 	or_perf, p0OR, alphaOR, jOR = Inf, 0., 0., 0
 	for p0 in p0_grid
 		out[:] = map(a-> nv_obj(mhats, ps, p0, a, Nhats, ss), alpha_grid)
-		jstar = indmin(out)
+		jstar = argmin(out)
 		if out[jstar] < or_perf
 			jOR = jstar
 			or_perf = out[jstar]
@@ -99,7 +99,7 @@ end
 #returns alpha^LOO, maximizingAlphaIndex, curveInAlpha
 function nv_loo_alpha(mhats, p0, alpha_grid, Nhats, ss)
 	out = map(a-> nv_loo(mhats, p0, a, Nhats, ss), alpha_grid)
-	jstar = indmin(out)
+	jstar = argmin(out)
 	return alpha_grid[jstar], jstar, out
 end
 
@@ -112,7 +112,7 @@ function nv_loo_both(mhats, p0_grid, alpha_grid, Nhats, ss)
 	jLOO = -1
 	for p0 in p0_grid
 		out[:] = map(a-> nv_loo(mhats, p0, a, Nhats, ss), alpha_grid)
-		jstar = indmin(out)
+		jstar = argmin(out)
 		if out[jstar] < loo_perf
 			jLOO = jstar
 			loo_perf = out[jstar]
@@ -127,7 +127,7 @@ end
 #returns alphaAP, minimizingAlphaIndex, curveInAlpha
 function nv_apriori_alpha(ps, p0, alpha_grid, Nhats, ss)
 	out = map(a-> exp_nv_obj(ps, p0, a, Nhats, ss), alpha_grid)
-	jstar = indmin(out)
+	jstar = argmin(out)
 	return alpha_grid[jstar], jstar, out
 end
 

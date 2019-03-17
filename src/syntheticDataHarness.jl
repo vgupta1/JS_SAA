@@ -4,7 +4,7 @@
 # For increasing K, simulate datasets and performance 
 # of various methods SAA, Alpha LOO, and Alpha OR
 ###
-using Distributions
+using Distributions, Random
 include("../src/JS_SAA_main.jl")
 
 #supp_full, ps_full are d x K matrices with true info per problem
@@ -12,19 +12,19 @@ include("../src/JS_SAA_main.jl")
 #s is the service level, N is the average amount of data per problem
 function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s; 
 						usePoisson=true, seed=8675309)
-	srand(seed)
-	const Kmax = maximum(K_grid)
+	Random.seed!(seed)
+	Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
 	@assert size(supp_full) == size(ps_full) "supp_full and ps_full have incompatible dimensions"
 
-	const d = size(supp_full, 1)
+	d = size(supp_full, 1)
 
 	#For safety, trim inputs to size Kmax
 	supp_full = view(supp_full, 1:d, 1:Kmax)
 	ps_full = view(ps_full, 1:d, 1:Kmax)
 
 	p0 = ones(d)/d
-	alpha_grid = linspace(0, 180, 120)
+	alpha_grid = range(0, stop=180, length=120)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")

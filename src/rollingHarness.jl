@@ -29,7 +29,7 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 	dates = view(dates, 1:numDataPoints)
 
 	p0 = ones(d) / d
-	alpha_grid = linspace(0, 180, 120)
+	alpha_grid = range(0, stop=180, length=120)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")

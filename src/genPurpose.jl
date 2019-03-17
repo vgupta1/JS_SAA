@@ -49,12 +49,12 @@ end
 function eb_mm_estimates(mhats)
 	Nhats = sum(mhats, 1)
 	p0 = mean(mhats ./ Nhats, 2)
-	const K = size(mhats, 2)
+	K = size(mhats, 2)
 
-	const C0 = sum(mhats.^2)/K
-	const sq_norm_p0 = norm(p0)^2
-	const Nbar = mean(Nhats)
-	const var_n = mean( @.(Nhats^2 - Nhats) )
+	C0 = sum(mhats.^2)/K
+	sq_norm_p0 = norm(p0)^2
+	Nbar = mean(Nhats)
+	var_n = mean( @.(Nhats^2 - Nhats) )
 
 	alpha0 = C0 - sq_norm_p0 * var_n - Nbar
 	@assert alpha0 > 0 "Moment matching fails"
@@ -69,7 +69,7 @@ end
 #for now, super lazy and just search a grid.
 #returns AlphaEstimate, minimizingAlphaIndex 
 function mse_estimates(mhats, supps, p0, alpha_grid)
-	const K = size(mhats, 2)
+	K = size(mhats, 2)
 	Nhats = sum(mhats, 1)
 	phats = mhats ./ Nhats
 	mu0s = vec(p0' * supps)
@@ -94,7 +94,7 @@ function mse_estimates(mhats, supps, p0, alpha_grid)
 		out/K
 	end
 	out = map(mse, alpha_grid)
-	alpha_grid[indmin(out)], indmin(out)
+	alpha_grid[argmin(out)], argmin(out)
 end
 
 function z_k(x_k, c_k, p0, alpha, mhat_k, ps_k, lam_k, lamavg)
@@ -129,8 +129,8 @@ end
 
 #average true performance
 function zbar(xs, cs, p0, alpha, mhats, ps, lams)
-	const lamavg = mean(lams)
-	const K = size(cs, 2)
+	lamavg = mean(lams)
+	K = size(cs, 2)
 	out = 0.
 	#VG maybe change this to a more numerically stable way to do avg?
 	for k = 1:K
@@ -144,7 +144,7 @@ end
 zstar(xs, cs, ps, lams) = zbar(xs, cs, ps[:, 1], 0., ps, ps, lams)
 
 function zLOObar_unsc(xs, cs, p0, alpha, mhats)
-	const K = size(cs, 2)
+	K = size(cs, 2)
 	out = 0.
 	for k = 1:K
 		out += zLOO_k_unsc(xs[k], cs[:, k], p0, alpha, mhats[:, k])
@@ -213,12 +213,12 @@ end
 # end
 
 ###  
-# Ideally should have a broadcast implementaiton that combines
+# Ideally should have a broadcast implementation that combines
 # previous two...
 function genNewsvendorsDiffSupp(supps, s, K)
 	#Generic computation of the sth quantile 
 	function x_k(p0, alpha, mhat_k, k, s) 
-	    const Nhat_k = sum(mhat_k)
+	    Nhat_k = sum(mhat_k)
 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
 	    if !isapprox(sum(palpha), 1) || sum(mhat_k .< 0) > 0 
 	    	println("Nhat_k:\t", Nhat_k)
@@ -250,10 +250,10 @@ end
 #assumes NA's already filtered from calcualtion
 function bin_data(dat_vec, d; TOL = .001)
 	#Explicitly make bins to prevent histogram from rounding
-	const l = minimum(dat_vec)
-	const u = maximum(dat_vec)
+	l = minimum(dat_vec)
+	u = maximum(dat_vec)
 	bin_width = (u - l)/d
-    bin_edges = collect(linspace(l, u, d + 1))
+    bin_edges = collect(range(l, stop=u, length=d + 1))
     bin_edges[end] += TOL * bin_width  #inflate the last one a little...
     bin_edges[1] -= TOL * bin_width
     dat_hist = fit(Histogram, dat_vec, bin_edges, closed =:left)
