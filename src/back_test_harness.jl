@@ -4,7 +4,7 @@
 # For increasing K, 
 #  Look at N consecutive days of data
 #  Compute various methods
-#  Record output
+#  Evaluate on the ps induced by the entire time series
 ###
 using Distributions
 include("../src/JS_SAA_main.jl")
@@ -65,7 +65,7 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 
 			for K in K_grid
 				println("($(N), $(ix_start), $(K))")
-				#Take views on evrything for simplicity
+				#Take views on everything for simplicity
 				lams = view(lam_full, 1:K)
 				supp = view(supp_full, 1:d, 1:K)
 				ps = view(ps_full, 1:d, 1:K)

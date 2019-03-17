@@ -4,7 +4,7 @@
 # For increasing K, 
 #  Look at N consecutive days of data
 #  Compute various methods
-#  Record output by looking at the very next day ONLY
+#  Record output by looking at performance on next numTestDays
 ###
 using Distributions
 include("../src/JS_SAA_main.jl")
@@ -76,7 +76,7 @@ function back_test2(K_grid, supp_full, ps_full, binned_data_full, dates, outPath
 
 			for K in K_grid
 				println("($(N), $(ix_start), $(K))")
-				#Take views on evrything for simplicity
+				#Take views on everything for simplicity
 				lams = view(lam_full, 1:K)
 				supp = view(supp_full, 1:d, 1:K)
 				Nhats = view(Nhats_full, 1:K)
@@ -93,10 +93,7 @@ function back_test2(K_grid, supp_full, ps_full, binned_data_full, dates, outPath
 				#problems with no data do not contribute to the anchor
 				phat_avg = JS.get_GM_anchor(mhats)
 				if !isapprox(sum(phat_avg), 1) || minimum(phat_avg) < 0
-					println(phat_avg)
-					println(Nhats')
-					println(mhats)
-					throw("wtf")
+					throw("Something went terriby wrong.  Grand avg phat is not a probability distribution")
 				end
 
 				#Compute the full-info value once for reference
