@@ -1,5 +1,5 @@
 ###
-# Test using simulated data calibrated to the rossman set
+# Test using simulated data
 #
 # For increasing K, simulate datasets and performance 
 # of various methods SAA, Alpha LOO, and Alpha OR

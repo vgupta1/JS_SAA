@@ -1,9 +1,13 @@
 ###
-# Test generating a histogram for SAA, Alpha LOO, and Alpha OR
+# Generates a histogram for SAA, Alpha LOO, and Alpha OR
+# Used for illustrative picture in presentation
 ###
 using Distributions
 include("../src/JS_SAA_main.jl")
 
+# Generates data that can be used to create a histogram of costs
+# ps are half uniform, and half slightly concentrated at 1/d
+# all data is synthetic
 function runTest(numRuns, K, outPath)
 	const s = .95
 	const d = 10
@@ -18,10 +22,9 @@ function runTest(numRuns, K, outPath)
 	lams = ones(K)
 
 	cs, xs = JS.genNewsvendors(collect(1:d), s * ones(K), K)
-
 	f = open("$(outPath)_$(K)_$(numRuns).csv", "w")
 
-	#write a header
+	#Header
 	writecsv(f, ["Run" "Method" "TruePerf" "time" "alpha"])
 
 	#Compute the full-info value once for reference
@@ -68,8 +71,8 @@ function runTest(numRuns, K, outPath)
 end
 runTest(10, 10, "../Results/tempFile")
 
-#Run once with K = 1 for initial graph
+#Run once with K = 1 for initial graph in presentation
 runTest(1000, 1, "../Results/singleKUnifNewsvendor")
 
-#Run again with K = 1000 for comparison graph
+#Run again with K = 1000 for comparison graph in presentation
 runTest(1000, 1000, "../Results/singleKUnifNewsvendor")

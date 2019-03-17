@@ -1,7 +1,8 @@
-## A small driver file to run the 4 increasing K test using synthetic rossman data 
-#and combine
-#run like this
-#julia -p 4 -L increasingKHarness.jl testIncrKRossman.jl numRuns outPathStub d usePoisson
+## A small driver file to run the 4 
+# synthetic data tests in parallel
+# data calibrated to the RossmanKaggleData
+#Run like this
+#julia -p 4 -L syntheticDataHarness.jl test_SyntheticData.jl numRuns outPathStub d usePoisson
 #passed arguments 
 	#ARGS[1] is numRuns
 	#ARGs[2] is partial path for output.  

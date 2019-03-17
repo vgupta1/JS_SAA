@@ -1,4 +1,4 @@
-#julia -L back_test_harness.jl back_test_rossman.jl outPathStub d
+#julia -L rollingHarness.jl test_Rolling.jl outPathStub d
 #passed arguments 
 	#ARGS[1] is partial path for output.  
 	#ARGS[2] is d must be one of 20, 50, 1000
@@ -32,6 +32,6 @@ dates= tdata[2:end, 1] #keep track of dates for fun
 
 #currently run single-threaded for ease
 tic()
-back_test2(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
+rollingTest(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
 toc()
 

@@ -14,7 +14,7 @@ include("../src/JS_SAA_main.jl")
 #dates is the associated dates
 #adds new subproblems in order appear in files
 #s is the service level, N is the average amount of data per problem
-function back_test2(K_grid, supp_full, ps_full, binned_data_full, dates, outPath, N_grid, s;
+function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPath, N_grid, s;
 					onlySAA = false, numTestDays=10)
 	const Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
