@@ -52,6 +52,7 @@ dat.AdjSales <- dat.AdjSales[, c(1, sample(1115) + 1)]
 write_csv(dat.AdjSales, "../RossmanKaggleData/Results/AdjSales_NoWeekends.csv")
 
 #now do a row shuffle
+#breaks any autocorrelations between days, maintains correlations between stores. 
 dat.AdjSales2 <- dat.AdjSales
 dat.AdjSales2[, 2:1116] <- dat.AdjSales2[sample(nrow(dat.AdjSales)), 2:1116]
 
