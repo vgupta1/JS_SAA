@@ -95,7 +95,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			##MSE version of alpha with GM
 			t = 
 			  @elapsed alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
-			writedlm(f, [iRun K d N "MSE" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
+			writedlm(f, [iRun K d N "MSE_GM" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
 
 		end  #end K Loop
 		flush(f)
