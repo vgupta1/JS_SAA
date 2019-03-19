@@ -17,8 +17,8 @@ const d = parse(Int, ARGS[3])
 const usePoisson = parse(Bool, ARGS[4])
 
 const s = .95
-K_grid = vcat(1, collect(10:10:90), collect(100:100:1000), 1115)
-N_grid = collect(10:10:100)
+K_grid = vcat(round.(Int, 2 .^(3:.25:10)), 1115)
+N_grid = [20]
 
 outPath = "$(spath)_syntheticRossman_$(s)_$(usePoisson)_$(4*numRuns)"
 #old naming specification.  keep for a bit.  
