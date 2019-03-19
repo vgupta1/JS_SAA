@@ -13,10 +13,10 @@ const s = .95
 
 @assert d in [20, 50, 1000] "Only bins of size 20, 50, 1000 currently supported"
 
-K_grid = vcat(1, collect(10:10:90), collect(100:100:1000), 1115)
+K_grid = vcat(round.(Int, 2 .^(3:.25:10)), 1115)
 N_grid = [10, 20, 40]
 
-outPath = "$(spath)_RossRolling_$(s)_$(param_path)"
+outPath = "$(spath)_RossRolling_$(s)__$(d)_$(param_path)"
 
 #First read in the data and parse it appropriately
 ps_full = readdlm("../RossmanKaggleData/CleanedData/ps_full$(d).csv", ',')
