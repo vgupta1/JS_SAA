@@ -55,7 +55,8 @@ ggsave("./Figures/informs_singleNewsvendor_1_withSAALine.pdf", height=3.8, width
 ####
 # Similar graph but for many K's
 ####
-dat = read_csv("../Results/singleKUnifNewsvendor_1000_1000.csv")
+#dat = read_csv("../Results/singleKUnifNewsvendor_1000_1000.csv")
+dat = read_csv("../Results/InformsPlots/singleKUnifNewsvendor_1000_1000.csv")
 
 ##add pretty labels
 dat <- dat %>% mutate(Method = factor(Method), 

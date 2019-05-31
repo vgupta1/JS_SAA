@@ -1,7 +1,7 @@
 ## Clean up the Rossman Data For analysis
 # AdjSales_NoWeekends.csv :  Linear de-trend, and drop December, weekends.  permute the stores just for safety.
 # AdjSales_NoWeekends_RowShuffle.csv :  Permute rows of dataset 1 (keeps correlation across stores, destroys days autocorrelation)
-# AdjSales_NoWeekends_ShuffleWithinCol.csv3:  Shuffle separately within the columns of dataset 1 (breaks both correlation of k, and days)
+# AdjSales_NoWeekends_ShuffleWithinCol.csv:  Shuffle separately within the columns of dataset 1 (breaks both correlation of k, and days)
 # Dataset 4:  Shuffle blocks of adjacent days within each column:  block length = 20.  (not made here)
 ## After generating everything, pass to Julia notebook BinningData.ipynb to do the binning  
 
@@ -22,6 +22,12 @@ dat = read_csv("../RossmanKaggleData/train.csv",
                  StateHoliday = col_character(),
                  SchoolHoliday = col_integer()
                ))
+
+##how many stores are open on weekends
+dat %>% group_by(Date) %>%
+  summarise(Open=mean(Open), n() ) %>%
+  mutate(wday = lubridate::wday(Date)) %>%
+  group_by(wday) %>% summarise(mean(Open))
 
 #Throw away days they are closed because zero sales, and weekends
 dat <- filter(dat, Open == 1, !lubridate::wday(Date) %in% c(1, 7))

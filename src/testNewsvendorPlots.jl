@@ -2,17 +2,17 @@
 # Generates a histogram for SAA, Alpha LOO, and Alpha OR
 # Used for illustrative picture in presentation
 ###
-using Distributions
+using Distributions, Random, DelimitedFiles
 include("../src/JS_SAA_main.jl")
 
 # Generates data that can be used to create a histogram of costs
 # ps are half uniform, and half slightly concentrated at 1/d
 # all data is synthetic
-function runTest(numRuns, K, outPath)
-	const s = .95
-	const d = 10
-	const N = 20
-	srand(8675309)
+function runTest(numRuns, K, outPath; usePoisson=true)
+	s = .95
+	d = 10
+	N = 20
+	Random.seed!(8675309)
 	p0 = ones(d)/d
 	ps = rand(Dirichlet(ones(d)), floor(Int, K/2))
 	ps = [ps rand(Dirichlet(3 * ones(d)), K - floor(Int, K/2)) ]
@@ -21,7 +21,8 @@ function runTest(numRuns, K, outPath)
 	alpha_grid = range(0, stop=50, length=75)
 	lams = ones(K)
 
-	cs, xs = JS.genNewsvendors(collect(1:d), s * ones(K), K)
+	cs, xs = JS.genNewsvendorsDiffSupp(repeat(1:d, inner=(1, K)), s, K)
+
 	f = open("$(outPath)_$(K)_$(numRuns).csv", "w")
 
 	#Header
@@ -33,8 +34,11 @@ function runTest(numRuns, K, outPath)
 	println(full_info)
 	writedlm(f, [1 "FullInfo" full_info t 0.], ',')
 
+	Nhats = fill(N, K)
 	for iRun = 1:numRuns
-		Nhats = rand(Poisson(N), K)
+		if usePoisson
+			Nhats = rand(Poisson(N), K)
+		end
 		mhats = JS.sim_path(ps, Nhats);
 
 		#for data-driven shrinkage anchor
@@ -64,10 +68,10 @@ function runTest(numRuns, K, outPath)
 	end #endRun
 	close(f)	
 end
-runTest(10, 10, "../Results/tempFile")
+runTest(10, 10, "../Results/tempFile", usePoisson=false)
 
 #Run once with K = 1 for initial graph in presentation
-runTest(1000, 1, "../Results/singleKUnifNewsvendor")
+runTest(1000, 1, "../Results/singleKUnifNewsvendor", usePoisson=false)
 
 #Run again with K = 1000 for comparison graph in presentation
-runTest(1000, 1000, "../Results/singleKUnifNewsvendor")
+runTest(1000, 1000, "../Results/singleKUnifNewsvendor", usePoisson=false)

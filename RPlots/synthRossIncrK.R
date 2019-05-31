@@ -1,59 +1,113 @@
-##Plotting the synthetic Rossman Experiment 
+##Plotting results out of the syntheticData Experiment
 #
 library(tidyverse)
 library(ggplot2)
+library(latex2exp)
+library(stringr)
+library(extrafont)
+library(forcats)
 
-dat <- read_csv("../Results/res_RossN_1115_50_0.95_true_100.csv")
-dat <- read_csv("../Results/res_RossN_1115_50_0.95_false_100.csv")
+library(showtext)
+font_add("Times New Roman", "Times New Roman.ttf")
+showtext_auto()
 
-full_info <- dat %>% 
-  filter(Method=="FullInfo", Run==1) %>% 
-  select(K, d, N, TruePerf)
+usePoisson = TRUE
+dat <- read_csv(str_c("../Results/PaperPlots/paperv1_syntheticRossman_0.95_", usePoisson, "_200.csv"))
 
-dat <- left_join(dat, full_info, by=c("K", "d", "N")) %>%
+#express everything as benefit over SAA
+saa_perf <- dat %>%
+  filter(Method =="SAA") %>%
+  select(Run, K, d, N, TruePerf)
+
+dat <- left_join(dat, saa_perf, by=c("Run", "K", "d", "N")) %>%
     rename(TruePerf = TruePerf.x,
-           FullInfo = TruePerf.y) %>%
-  mutate(RelLoss = TruePerf / FullInfo - 1)
-
+           SAA = TruePerf.y) %>%
+  mutate(RelBenefit =  1 - TruePerf / SAA)
 
 #Summarize
 dat.sum <- dat %>% group_by(K, d, N, Method) %>%
     summarise(avgPerf = mean(TruePerf), 
+              sdPerf = sd(TruePerf),
               avgTime = mean(time), 
               avgAlpha = mean(alpha), 
-              avgRelLoss = mean(RelLoss), 
-              sdRelLoss = sd(RelLoss), 
-              upRelLoss = quantile(RelLoss, .9), 
-              downRelLoss = quantile(RelLoss, .1)
+              avgRelBenefit = mean(RelBenefit), 
+              sdRelBenefit = sd(RelBenefit), 
+              upRelBenefit = quantile(RelBenefit, .9), 
+              downRelBenefit = quantile(RelBenefit, .1), 
+              stdErrRelBenefit = sdRelBenefit/ sqrt(n())
     )
 
-dat.sum %>% filter(Method != "FullInfo", K==1115) %>%
-  ggplot(aes(N, avgRelLoss, group=Method, color=Method)) + 
-  geom_point() + geom_line() + 
-  theme_bw() + 
-  xlim(10, 50)
+dat.sum <- dat.sum %>% mutate(Method = as.factor(Method),
+                              Method = fct_relevel(Method, "OraclePhat", "LOO_avg", "MSE_GM", "Oracle", "LOO_unif", "MSE", "SAA", "FullInfo"), 
+                                  Labels = fct_recode(Method, `JS-Fixed`= "MSE", 
+                                                      `JS-GM` = "MSE_GM",
+                                                      `S-SAA-Fixed`="LOO_unif", 
+                                                      `S-SAA-GM`="LOO_avg", 
+                                                      `Oracle-Fixed`="Oracle", 
+                                                      `Oracle-GM`="OraclePhat") )
 
 ##By K 
-dat.sum %>% filter(Method != "FullInfo", N==10) %>%
-  ggplot(aes(K, avgRelLoss, group=Method, color=Method)) + 
-  geom_point() + geom_line() + 
-  theme_bw()
+pd = position_dodge(.2)
+g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo"), N==10) %>%
+  ggplot(aes(K, avgRelBenefit, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
+  geom_point(position=pd) + geom_line(position=pd) + 
+  geom_errorbar(aes(ymin=avgRelBenefit-stdErrRelBenefit, ymax=avgRelBenefit + stdErrRelBenefit), position=pd) + 
+  theme_minimal(base_size = 10, base_family="Times New Roman") + 
+  scale_x_log10() + scale_y_continuous(labels=scales::percent, limits=c(NA, .175)) + 
+    theme(legend.title=element_blank(), 
+          legend.position = c(.55, .85)) +
+    ylab("Benefit over SAA (%)") + 
+  guides(color=guide_legend(nrow=3,byrow=TRUE))
 
-dat.sum %>% filter(Method != "FullInfo", K==1115) %>%
-  arrange(N, Method) %>% 
-  select(Method, avgRelLoss) %>% 
-  View()
 
-dat.sum %>% ungroup() %>%
-  filter(Method != "FullInfo") %>%
-  select(K,d, avgRelLoss, Method) %>% 
-  spread(Method, avgRelLoss)
+##Save it down.
+ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synthData", usePoisson, ".pdf"), 
+       g, width=3.25, height=3.25, units="in")
 
-dat.sum %>% ungroup() %>%
-  filter(Method != "FullInfo") %>%
-  select(K,d, avgAlpha, Method) %>% 
-  spread(Method, avgAlpha)
 
-#######
-dat.sum %>% filter(K > 600) %>%
-  arrange(K, d)
+##Standard Deviation Plot
+g <- dat.sum %>% filter(Method != "FullInfo", N==10) %>%
+  ggplot(aes(K, sdPerf, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
+  geom_point(position=pd) + geom_line(position=pd) +
+  theme_minimal(base_size = 10, base_family="Times New Roman") + 
+  scale_x_log10() + scale_y_log10(limits=c(NA, 3000)) + 
+  theme(legend.text=element_text(size=6),
+    legend.title=element_blank(), 
+        legend.position=c(.7, .8)) +
+  ylab("Std. of Performance") + 
+  guides(color=guide_legend(ncol=2,byrow=TRUE))
+g
+
+##Save it down.
+ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synDataStdDev_", usePoisson, ".pdf"), 
+       g, width=3.25, height=3.25, units="in")
+
+#####
+#Plots of alpha Convergence
+####
+g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "OraclePhat", "LOO_avg"), N==10) %>%
+  ggplot(aes(K, avgAlpha, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
+  geom_point(position=pd) + geom_line(position=pd) + 
+  theme_minimal(base_size = 10, base_family="Times New Roman") + 
+  scale_x_log10() + scale_y_continuous() + 
+  theme(legend.title=element_blank(), legend.position=c(.6, .8)) +
+  ylab(TeX("$\\alpha$")) + 
+  guides(color=guide_legend(nrow=3,byrow=TRUE))
+g
+
+ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synDataAlphaNonGM_", usePoisson, ".pdf"), 
+       g, width=3.25, height=3.25, units="in")
+
+g <- dat.sum %>% filter(Method %in% c("OraclePhat", "LOO_avg"), N==10) %>%
+  ggplot(aes(K, avgAlpha, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
+  geom_point(position=pd) + geom_line(position=pd) + 
+  theme_minimal(base_size = 10, base_family="Times New Roman") + 
+  scale_x_log10() + scale_y_continuous() + 
+  theme(legend.title=element_blank(), legend.position=c(.6, .8)) +
+  ylab(TeX("$\\alpha$")) + 
+  guides(color=guide_legend(nrow=3,byrow=TRUE))
+g
+
+ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synDataAlphaGM_", usePoisson, ".pdf"), 
+       g, width=3.25, height=3.25, units="in")
+
