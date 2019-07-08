@@ -25,7 +25,7 @@ function get_GM_anchor(mhats)
 end
 
 function sim_path(p_k, N::Int)
-	@assert N > 0 "Something weird"
+	@assert N > 0 "Attempting to simulate N = 0 data points"
     mhats_k = zeros(length(p_k))
     for j in rand(Categorical(p_k), N)
         mhats_k[j] += 1
