@@ -1,6 +1,3 @@
-Not yet ready for public consumption.
-
-
 # JS_SAA
 
 In the spirit of reproducible research, this repository contains all the code necessary for running the experiments and generating graphs from the paper 
@@ -11,13 +8,13 @@ Data for these experiments was taken from the [Kaggle Challenge](https://www.kag
 If you find this code or the paper useful, ***please consider citing it***.
 
 ## Overview
-All of the source code for computing solutions by various methods can be found in genPurpose.jl, written in Julia.  The file babyNewsvendor.jl contains specialized functions for the specific case of a newsvendor with bernoulli Demand.   These two files are wrapped together in the single module JS defined in JS_SAA.main.jl
+All of the source code for computing solutions by various methods can be found in genPurpose.jl, written in Julia.  The file babyNewsvendor.jl contains specialized functions for the specific case of a newsvendor with Bernoulli demand.   These two files are wrapped together in the single module JS defined in JS_SAA.main.jl
 
 ### Data Cleaning
 The files:
   - clean_data.R
   - BinningData.ipynb
-perform the requisite data-cleaning (in R) and discretization used for some experiments (in juyter notebook, Julia).   
+perform the requisite data-cleaning (in R) and discretization used for some experiments (in jupyter notebook, Julia).   
 
 ### Experiments
 The files:
