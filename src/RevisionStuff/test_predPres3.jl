@@ -7,19 +7,23 @@
 #By varying alpha0 in dirichlet, we vary importance of shrinkage.
 #Feature is univariate to help the NW methods 
 
-using Distributions, PyPlot, Random, LinearAlgebra, DelimitedFiles
+using Distributions, Random, LinearAlgebra, DelimitedFiles
 include("../JS_SAA_main.jl")
 include("PP_helpers.jl")
 
 const seed = 8675309 
-const K = 100  #VG up this to 10000
+const K = 1000  
 const d = 10
-const alpha0 = 10
 const N = 10
 const s = .85
-const numRuns = 50  #VG up this 100 or 200
-const sigma = 3
-const X_std = 10.
+const numRuns = 100  #VG up this 100 or 200
+
+const path   = ARGS[1]
+const alpha0 = parse(Float64, ARGS[2])
+const sigma  = parse(Float64, ARGS[3])
+const X_std  = parse(Float64, ARGS[4])
+
+println(alpha0, "\t", sigma, "\t", X_std)
 
 ##Some algorithmic tuning stuff
 alpha_grid = range(0., stop=100, length=100);  #VG up the range too
@@ -50,7 +54,7 @@ end
 cs, xs = JS.genNewsvendorsDiffSupp(repeat(1:d, 1, K), s, K);
 
 #setup output
-f = open("temp3Results_$(alpha0)_$(sigma)_$(X_std)_$(numRuns)_$(seed).tsv", "w")
+f = open("$(case)_$(alpha0)_$(sigma)_$(X_std)_$(numRuns)_$(seed).tsv", "w")
 writedlm(f, ["K" "d" "N" "Method" "TruePerf" "alpha" "bandwidth"])
 
 for iRun = 1:numRuns
