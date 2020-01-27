@@ -70,8 +70,6 @@ function runTest(numRuns, K, outPath; usePoisson=true)
 end
 runTest(10, 10, "../Results/tempFile", usePoisson=false)
 
-#Run once with K = 1 for initial graph in presentation
-runTest(1000, 1, "../Results/singleKUnifNewsvendor", usePoisson=false)
-
+# Sept 2019:  This is the run that is used the paper to generate histogram plots for intro.
 #Run again with K = 1000 for comparison graph in presentation
-runTest(1000, 1000, "../Results/singleKUnifNewsvendor", usePoisson=false)
+#runTest(1000, 1000, "../Results/singleKUnifNewsvendor", usePoisson=false)

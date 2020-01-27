@@ -6,3 +6,7 @@ deps/deps.jl
 *.csv
 *.zip
 *.pdf
+notebooks/*
+src/VG_Plan
+src/.ipynb_notebooks
+RevisionStuff/.ipynb_notebooks

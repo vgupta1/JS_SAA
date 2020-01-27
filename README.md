@@ -22,7 +22,7 @@ The files:
   - syntheticDataHarness.jl
   - test_SyntheticData.jl
 
-call workhorse functions from the module JS to simulate data and run experiments used for generating plots for exploration or for the paper.  Notice that since these algorithms are ``embarassingly parallel", substantive speed-ups can be achieved by multi-threading.  The file test_SyntheticData.jl does this in a naive way way by batching.  
+call workhorse functions from the module JS to simulate data and run experiments used for generating plots for exploration or for the paper.  Notice that since these algorithms are ``embarassingly parallel", substantive speed-ups can be achieved by multi-threading.  The file test_SyntheticData.jl does this in a naive way by batching.  
 
 The pairs of files: 
   - rollingHarness.jl

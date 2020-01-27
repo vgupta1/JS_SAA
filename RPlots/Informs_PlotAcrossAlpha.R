@@ -1,4 +1,3 @@
-## Informs Presentation Plots
 #Plots across Alpha for a single K Run
 
 library(tidyverse)
@@ -7,10 +6,9 @@ library(forcats)
 library(extrafont)
 loadfonts()
 
-dat = read_csv("../Results/singleKAcrossAlpha_10000_.95.csv")
-#dat = read_csv("../Results/singleKAcrossAlpha_1000_.8.csv")
-
-dat = read_csv("../Results/singleKAcrossAlphaBad_999_.95.csv")
+###The old data
+dat = read_csv("../Results/InformsPlots/singleKAcrossAlpha_10000_.95.csv")
+# dat = read_csv("../Results/InformsPlots/singleKAcrossAlphaBad_999_.95.csv")
 
 
 SAA0_val <- filter(dat, alpha < 1e-6) %>% select(SAAEstim)

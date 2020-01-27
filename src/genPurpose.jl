@@ -8,8 +8,9 @@
 # c_k  			: [c_ik for i = 1:d ]
 # cs			: (d, K) Matrix with elements c_ik
 
-#General purpose functions
-###
+##
+####Some helpers
+##
 function shrink(phat_k, p0, alpha, Nhat_k)
 	if Nhat_k <= 0
 		return p0
@@ -151,6 +152,18 @@ function zLOObar_unsc(xs, cs, p0, alpha, mhats)
 	end
 	out /K
 end
+
+# #SAA_SubOpt-ish term.  
+# function zsaa_ish(xs, cs, p0, alpha, mhats, ps, lams)
+# 	lamavg = mean(lams)
+# 	Nhats = vec(sum(mhats, 1))
+# 	K = size(cs, 2)
+# 	out = 0.
+# 	for k = 1:K
+# 		out += Nhats[k] * z_k(xs[k], cs[:, k], p0, alpha, mhats[:, k], mhats[:, k]/Nhats[k], lams[k], lamavg)
+# 	end
+# 	out/K
+# end
 
 #returns alphaOR, minimizingAlphaIndex, curveInAlpha
 function oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
