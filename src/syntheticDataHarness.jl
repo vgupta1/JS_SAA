@@ -11,7 +11,7 @@ include("../src/JS_SAA_main.jl")
 #adds new subproblems in order appear in files
 #s is the service level, N is the average amount of data per problem
 function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s; 
-						usePoisson=true, seed=8675309)
+						usePoisson=true, seed=8675309, alpha_max = 180, alpha_len=120)
 	Random.seed!(seed)
 	Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
@@ -24,7 +24,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 	ps_full = view(ps_full, 1:d, 1:Kmax)
 
 	p0 = ones(d)/d
-	alpha_grid = range(0, stop=180, length=120)
+	alpha_grid = range(0., stop=alpha_max, length=alpha_len)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")
@@ -54,6 +54,9 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 			#for data-driven shrinkage anchor
 			phat_avg = vec(mean(mhats ./ Nhats', dims=2))
+
+			#VG Consider changing above to get_GM_anchor
+
 
 			#Compute the full-info value once for reference
 			if iRun == 1
