@@ -11,13 +11,13 @@
 #General purpose functions
 ###
 function shrink(phat_k, p0, alpha, Nhat_k)
-	if Nhat_k <= 0
+	if Nhat_k == 0
 		return p0
 	end
 	@. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
 end
 
-#need to be careful because some problem smay have zero data
+#need to be careful because some problems may have zero data
 function get_GM_anchor(mhats)
 	Nhats = vec(sum(mhats, dims=1))
 	non_zero_indx = Nhats .> 0
@@ -25,8 +25,12 @@ function get_GM_anchor(mhats)
 end
 
 function sim_path(p_k, N::Int)
-	@assert N > 0 "Attempting to simulate N = 0 data points"
     mhats_k = zeros(length(p_k))
+    
+    if N == 0 #allow simulating zero data points
+    	return mhats_k
+    end
+
     for j in rand(Categorical(p_k), N)
         mhats_k[j] += 1
     end
@@ -97,6 +101,7 @@ function mse_estimates(mhats, supps, p0, alpha_grid)
 	alpha_grid[argmin(out)], argmin(out)
 end
 
+#kth element of true perf
 function z_k(x_k, c_k, p0, alpha, mhat_k, ps_k, lam_k, lamavg)
 	x = x_k(p0, alpha, mhat_k)
 	cs = map(c_ik -> c_ik(x), c_k)
@@ -127,6 +132,7 @@ function zLOO_k_unsc(x_k, c_k, p0, alpha, mhat_k)
 	out
 end
 
+
 #average true performance
 function zbar(xs, cs, p0, alpha, mhats, ps, lams)
 	lamavg = mean(lams)
@@ -151,6 +157,29 @@ function zLOObar_unsc(xs, cs, p0, alpha, mhats)
 	end
 	out /K
 end
+
+#actually returns N lam_avg * ZCVbar
+function zCVbar_unsc(xs, cs, p0, alpha, cv_data)
+	out = 0.
+	numFolds = length(cv_data)
+	lams = ones(length(xs))
+
+	for fold = 1:numFolds
+		#form the training set and testing distribution
+		#be careful about empty problems in testing
+		train_data = sum(cv_data[setdiff(1:numFolds, fold)])
+		# test_Nhats = sum(cv_data[fold], dims=1)
+		# non_zero_ind = vec(test_Nhats .> 0)
+		# test_phat = zero(cv_data[fold])
+		# test_phat[:, non_zero_ind] = cv_data[fold][:, non_zero_ind] ./ transpose(test_Nhats[non_zero_ind])
+
+		#dispatch to the zbar method, again using scaling not important
+		out += zbar(xs, cs, p0, alpha, train_data, cv_data[fold], lams)
+	end
+	return out
+end
+
+
 
 #returns alphaOR, minimizingAlphaIndex, curveInAlpha
 function oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
@@ -185,6 +214,27 @@ function loo_alpha(xs, cs, mhats, p0, alpha_grid)
 	end
 	return alphaLOO, jstar, out
 end	
+
+
+function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
+	#divy up the data
+	cv_data = split_cv(mhats, numFolds)
+
+	alphaCV = 0.
+	jstar = -1
+	best_val = Inf
+	out = zeros(length(alpha_grid))
+	for (j, alpha) in enumerate(alpha_grid)
+		out[j] = zCVbar_unsc(xs, cs, p0, alpha, cv_data)
+		if out[j] < best_val
+			jstar = j
+			alphaCV = alpha
+			best_val = out[j]
+		end
+	end
+	return alphaCV, jstar, out
+end	
+
 
 ###  
 #### Deprecated
@@ -259,3 +309,30 @@ function bin_data(dat_vec, d; TOL = .001)
     dat_hist = fit(Histogram, dat_vec, bin_edges, closed =:left)
     bin_edges[1:d], dat_hist.weights, dat_hist    
 end
+
+
+###Helper function for splitting data for k-fold cross-validation
+#This is not a memory efficient implementation
+#Just lazy split/iterations
+function split_cv(mhats, numFolds)
+	d, K = size(mhats)
+    Ntot = convert(Int, sum(mhats))
+    splits = mod.(1:Ntot, numFolds) .+ 1
+    cv_data = [zero(mhats) for fold = 1:numFolds]
+
+    #iterate through each k in order
+    ix_split = 1
+
+    for k = 1:K
+        for i = 1:d
+            for j = 1:mhats[i, k]
+                cv_data[splits[ix_split]][i, k] += 1
+                ix_split += 1            
+            end
+        end
+    end
+    return cv_data
+end
+
+
+
