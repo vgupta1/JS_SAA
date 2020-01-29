@@ -116,6 +116,21 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
 				writedlm(f, [dates[ix_start] K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
+				#Gen the CV2 cost with 1/d anchor
+				t = 
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 2)
+				writedlm(f, [dates[ix_start] K d N "CV2_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+
+				#Gen the CV5 cost with 1/d anchor
+				t = 
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 5)
+				writedlm(f, [dates[ix_start] K d N "CV5_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+
+				#Gen the CV10 cost with 1/d anchor
+				t = 
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 10)
+				writedlm(f, [dates[ix_start] K d N "CV10_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+
 				##MSE version of alpha
 				t = 
 				  @elapsed alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
@@ -130,6 +145,21 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				t = 
 				  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
 				writedlm(f, [dates[ix_start] K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO], ',')
+
+				#Gen the CV2 cost with the GM Anchor
+				t = 
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 2)
+				writedlm(f, [dates[ix_start] K d N "CV2_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
+
+				#Gen the CV5 cost with the GM Anchor
+				t = 
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 5)
+				writedlm(f, [dates[ix_start] K d N "CV5_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
+
+				#Gen the CV10 cost with the GM Anchor
+				t = 
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 10)
+				writedlm(f, [dates[ix_start] K d N "CV10_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
 
 				##MSE version of alpha with GM
 				t = 
