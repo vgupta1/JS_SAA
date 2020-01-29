@@ -102,19 +102,20 @@ function mse_estimates(mhats, supps, p0, alpha_grid)
 end
 
 #kth element of true perf
-function z_k(x_k, c_k, p0, alpha, mhat_k, ps_k, lam_k, lamavg)
-	x = x_k(p0, alpha, mhat_k)
+function z_k(x_k, c_k, mhat_k, ps_k, lam_k, lamavg, hyper_param)
+	x = x_k(mhat_k, hyper_param)
 	cs = map(c_ik -> c_ik(x), c_k)
 	lam_k/lamavg * dot(ps_k, cs) 
 end
 
 #actually returns zLOO_k * N * lamavg
-function zLOO_k_unsc(x_k, c_k, p0, alpha, mhat_k)
+#hyper_param = p0, alpha
+function zLOO_k_unsc(x_k, c_k, mhat_k, hyper_param)
 	out = 0.
 	mhatloo = mhat_k[:] #copy data
 	#only compute for terms where mhat_k[i] > 0
 	#compute a base solution to resuse as necessary
-	x_base = x_k(p0, alpha, mhat_k)
+	x_base = x_k(mhat_k, hyper_param)
 	for i = 1:length(mhat_k)
 		#correct previous toggle
 		if i > 1 && mhat_k[i - 1] > 0
@@ -123,7 +124,7 @@ function zLOO_k_unsc(x_k, c_k, p0, alpha, mhat_k)
 
 		if mhat_k[i] > 0
 			mhatloo[i] -= 1	
-		    x = x_k(p0, alpha, mhatloo)
+		    x = x_k(mhatloo, hyper_param)
 		else 
 			x = x_base
 		end
@@ -134,32 +135,36 @@ end
 
 
 #average true performance
-function zbar(xs, cs, p0, alpha, mhats, ps, lams)
+#hyper_param = p0, alpha
+function zbar(xs, cs, mhats, ps, lams, hyper_param)
 	lamavg = mean(lams)
 	K = size(cs, 2)
 	out = 0.
 	#VG maybe change this to a more numerically stable way to do avg?
 	for k = 1:K
-		out += z_k(xs[k], cs[:, k], p0, alpha, mhats[:, k], ps[:, k], lams[k], lamavg)
+		out += z_k(xs[k], cs[:, k], mhats[:, k], ps[:, k], lams[k], lamavg, hyper_param)
 	end
 	out/K
 end
 
 #full-info for scaling/comparison
 #uses the fact that data scale doesn't matter.
-zstar(xs, cs, ps, lams) = zbar(xs, cs, ps[:, 1], 0., ps, ps, lams)
+#Only works for the regular xs (which is lame)
+zstar(xs, cs, ps, lams) = zbar(xs, cs, ps, ps, lams, (ps[:, 1], 0.))
 
-function zLOObar_unsc(xs, cs, p0, alpha, mhats)
+#hyper_param = p0, alpha,
+function zLOObar_unsc(xs, cs, mhats, hyper_param)
 	K = size(cs, 2)
 	out = 0.
 	for k = 1:K
-		out += zLOO_k_unsc(xs[k], cs[:, k], p0, alpha, mhats[:, k])
+		out += zLOO_k_unsc(xs[k], cs[:, k], mhats[:, k], hyper_param)
 	end
 	out /K
 end
 
 #actually returns N lam_avg * ZCVbar
-function zCVbar_unsc(xs, cs, p0, alpha, cv_data)
+#hyper_param = p0, alpha 
+function zCVbar_unsc(xs, cs, cv_data, hyper_param)
 	out = 0.
 	numFolds = length(cv_data)
 	lams = ones(length(xs))
@@ -168,13 +173,9 @@ function zCVbar_unsc(xs, cs, p0, alpha, cv_data)
 		#form the training set and testing distribution
 		#be careful about empty problems in testing
 		train_data = sum(cv_data[setdiff(1:numFolds, fold)])
-		# test_Nhats = sum(cv_data[fold], dims=1)
-		# non_zero_ind = vec(test_Nhats .> 0)
-		# test_phat = zero(cv_data[fold])
-		# test_phat[:, non_zero_ind] = cv_data[fold][:, non_zero_ind] ./ transpose(test_Nhats[non_zero_ind])
 
 		#dispatch to the zbar method, again using scaling not important
-		out += zbar(xs, cs, p0, alpha, train_data, cv_data[fold], lams)
+		out += zbar(xs, cs, train_data, cv_data[fold], lams, hyper_param)
 	end
 	return out
 end
@@ -188,7 +189,7 @@ function oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
 	best_val = Inf
 	out = zeros(length(alpha_grid))
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zbar(xs, cs, p0, alpha, mhats, ps, lams)
+		out[j] = zbar(xs, cs, mhats, ps, lams, (p0, alpha))
 		if out[j] < best_val
 			jstar = j
 			alphaOR = alpha
@@ -205,7 +206,7 @@ function loo_alpha(xs, cs, mhats, p0, alpha_grid)
 	best_val = Inf
 	out = zeros(length(alpha_grid))
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zLOObar_unsc(xs, cs, p0, alpha, mhats)
+		out[j] = zLOObar_unsc(xs, cs, mhats, (p0, alpha))
 		if out[j] < best_val
 			jstar = j
 			alphaLOO = alpha
@@ -225,7 +226,7 @@ function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	best_val = Inf
 	out = zeros(length(alpha_grid))
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zCVbar_unsc(xs, cs, p0, alpha, cv_data)
+		out[j] = zCVbar_unsc(xs, cs, cv_data, (p0, alpha))
 		if out[j] < best_val
 			jstar = j
 			alphaCV = alpha
@@ -267,7 +268,7 @@ end
 # previous two...
 function genNewsvendorsDiffSupp(supps, s, K)
 	#Generic computation of the sth quantile 
-	function x_k(p0, alpha, mhat_k, k, s) 
+	function x_k(mhat_k, k, s, p0, alpha) 
 	    Nhat_k = sum(mhat_k)
 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
 	    if !isapprox(sum(palpha), 1) || sum(mhat_k .< 0) > 0 
@@ -285,10 +286,37 @@ function genNewsvendorsDiffSupp(supps, s, K)
 	    supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
 	end
 
-	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, k, s) for k = 1:K]
+	xs  = [(mhat_k, (p0, alpha))-> x_k(mhat_k, k, s, p0, alpha) for k = 1:K]
 	cs = [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
 	cs, xs
 end
+
+# function genKSNewsvendorsDiffSupp(supps, s, K, Gamma)
+# 	#Computes the s + Gamma/sqrt N_k sample quantile 
+# 	#p0 and alpha are just ignored for now.  
+# 	function x_k(p0, alpha, mhat_k, k, s) 
+# 	    Nhat_k = sum(mhat_k)
+# 	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
+# 	    if !isapprox(sum(palpha), 1) || sum(mhat_k .< 0) > 0 
+# 	    	println("Nhat_k:\t", Nhat_k)
+# 	    	println("alpha:\t", alpha)
+# 	    	println("mhat_k:\n", mhat_k)
+# 	    	println("phat_k:\n", palpha)
+# 	    end
+
+# 	    indx = quantile(Categorical(palpha), s)
+# 	    supps[indx, k]
+# 	end
+
+# 	function c_ik(i, k, x, s)
+# 	    supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
+# 	end
+
+# 	xs  = [(p0, alpha, mhat_k)-> x_k(p0, alpha, mhat_k, k, s) for k = 1:K]
+# 	cs = [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
+# 	cs, xs
+# end
+
 
 #### Helper function for binning data
 #dat_vec is vector of actual realizations

@@ -116,11 +116,11 @@ end
 	cs, xs = JS.genNewsvendorsDiffSupp(supps, s, K)
 
 	#First some pointwise tests
-	@test isapprox(JS.z_k(xs[1], cs[:, 1], p0, 1, mhats[:, 1], ps[:, 1], 1, 1), 3.2530462468808903)
-	@test isapprox(JS.zbar(xs, cs, p0, 1, mhats, ps, lams), 4.428156384118435)
+	@test isapprox(JS.z_k(xs[1], cs[:, 1], mhats[:, 1], ps[:, 1], 1, 1, (p0, 1)), 3.2530462468808903)
+	@test isapprox(JS.zbar(xs, cs, mhats, ps, lams, (p0, 1)), 4.428156384118435)
 	@test isapprox(JS.zstar(xs, cs, ps, lams), 4.361044771184344)
 
-	@test isapprox(JS.zLOO_k_unsc(xs[1], cs[:, 1], p0, 1, mhats[:, 1]), 49.0 )
+	@test isapprox(JS.zLOO_k_unsc(xs[1], cs[:, 1], mhats[:, 1], (p0, 1)), 49.0 )
 
 	#Now check whole curve
 	alphaOR, jstar, oracle_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
