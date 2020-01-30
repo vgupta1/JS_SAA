@@ -25,6 +25,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 	p0 = ones(d)/d
 	alpha_grid = range(0., stop=alpha_max, length=alpha_len)
+	Gamma_grid = range(0, stop = sqrt(maximum(N_grid)) * (1-s), length=51)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")
@@ -32,6 +33,8 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 	#generate all Kmax subproblems upfront and store in memory
 	cs_full, xs_full = JS.genNewsvendorsDiffSupp(supp_full, s, Kmax)
+	csKS_full, xsKS_full = JS.genKSNewsvendorsDiffSupp(supp_full, s, Kmax, :crossVal)
+
 	lam_full = ones(Kmax)
 
 	for (iRun, N) = Iterators.product(1:numRuns, N_grid)
@@ -51,12 +54,12 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			mhats = view(mhats_full, 1:d, 1:K)
 			cs = view(cs_full, 1:d, 1:K)
 			xs = view(xs_full, 1:K)
+			csKS = view(csKS_full, 1:d, 1:K)
+			xsKS = view(xsKS_full, 1:K)
 
 			#for data-driven shrinkage anchor
+			#@VG Consider changing below to get_GM_anchor
 			phat_avg = vec(mean(mhats ./ Nhats', dims=2))
-
-			#VG Consider changing above to get_GM_anchor
-
 
 			#Compute the full-info value once for reference
 			if iRun == 1
@@ -67,7 +70,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 			#SAA
 			t = 
-			  @elapsed perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
+			  @elapsed perf_SAA = JS.zbar(xs, cs, mhats, ps, lams, (p0, 0.))
 			writedlm(f, [iRun K d N "SAA" perf_SAA t 0.0], ',')
 
 			#Gen the Oracle cost with 1/d anchor
@@ -130,6 +133,11 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			t = 
 			  @elapsed alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
 			writedlm(f, [iRun K d N "MSE_GM" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
+
+			##KS version with cross-val
+			t = 
+			  @elapsed perf_KS = JS.zbar(xsKS, csKS, mhats, ps, lams, (Gamma_grid, 5))
+			writedlm(f, [iRun K d N "KS" perf_KS t 0.0], ',')
 
 		end  #end K Loop
 		flush(f)

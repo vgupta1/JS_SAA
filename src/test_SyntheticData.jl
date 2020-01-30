@@ -9,7 +9,6 @@
 	#ARGS[3] d  
 	#ARGS[4] bool for using the poisson amount of data assumption.
 
-
 const numRuns = parse(Int, ARGS[1])
 const spath = ARGS[2]
 const param_path = "../RossmanKaggleData/CleanedData/"

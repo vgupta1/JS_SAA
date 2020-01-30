@@ -15,7 +15,7 @@ include("../src/JS_SAA_main.jl")
 #adds new subproblems in order appear in files
 #s is the service level, N is the average amount of data per problem
 function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPath, N_grid, s;
-					onlySAA = false, numTestDays=10)
+					onlySAA = false, numTestDays=10, alpha_max = 180, alpha_len = 120)
 	Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
 	@assert size(supp_full) == size(ps_full) "supp_full and ps_full have incompatible dimensions"
@@ -29,7 +29,8 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 	dates = view(dates, 1:numDataPoints)
 
 	p0 = ones(d) / d
-	alpha_grid = range(0, stop=180, length=120)
+	alpha_grid = range(0., stop=alpha_max, length=alpha_len)
+	Gamma_grid = range(0, stop = sqrt(maximum(N_grid)) * (1-s), length=51)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")
@@ -37,6 +38,8 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 
 	#generate all Kmax subproblems upfront and store in memory
 	cs_full, xs_full = JS.genNewsvendorsDiffSupp(supp_full, s, Kmax)
+	csKS_full, xsKS_full = JS.genKSNewsvendorsDiffSupp(supp_full, s, Kmax, :crossVal)
+
 	lam_full = ones(Kmax)
 
 	for N in N_grid
@@ -83,6 +86,9 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				mhats = view(mhats_full, 1:d, 1:K)
 				cs = view(cs_full, 1:d, 1:K)
 				xs = view(xs_full, 1:K)
+				csKS = view(csKS_full, 1:d, 1:K)
+				xsKS = view(xsKS_full, 1:K)
+
 				mhats_out = view(mhats_out_full, 1:d, 1:K)
 
 				N_out = sum(mhats_out, dims=1)
@@ -103,8 +109,13 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 
 				#SAA
 				t = 
-				  @elapsed perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
+				  @elapsed perf_SAA = JS.zbar(xs, cs, mhats, ps, lams, (p0, 0.))
 				writedlm(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0], ',')
+
+				#KS Robust value
+				t = 
+				  @elapsed perf_KS = JS.zbar(xsKS, csKS, mhats, ps, lams, (Gamma_grid, 5))
+				writedlm(f, [dates[ix_start] K d N "KS" perf_KS t 0.0], ',')
 
 				#Gen the Oracle cost with 1/d anchor
 				t = 
