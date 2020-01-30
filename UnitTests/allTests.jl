@@ -1,6 +1,6 @@
 ##  a bare bones Test-Suite for some critical functions
 using Test, Distributions, Random, LinearAlgebra
-#using DelimitedFiles
+using DelimitedFiles
 
 include("../src/JS_SAA_main.jl")
 include("consts.jl")
@@ -131,7 +131,6 @@ end
 		@test isapprox(cOracleCurve[i], oracle_curve[i])
 	end
 
-
 	alphaLOO, jstar, loo_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
 	@test isapprox(alphaLOO, 0.)
 	@test isapprox(jstar, 1)
@@ -139,7 +138,21 @@ end
 		@test isapprox(cLooCurve[i], loo_curve[i])
 	end
 
+	#Check the entire cross-val curve for K-fold
+	alphaCV, jstar, cv_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 5)
+	@test isapprox(alphaCV, 8.783783783783784)
+	@test isapprox(jstar, 14)
+
+	for i = 1:length(cCVCurve)
+		@test isapprox(cCVCurve[i], cv_curve[i])
+	end
+	
 end #shrunkenSAA
+
+
+
+
+
 
 end #AllTEsts
 
