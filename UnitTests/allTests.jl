@@ -146,10 +146,48 @@ end
 	for i = 1:length(cCVCurve)
 		@test isapprox(cCVCurve[i], cv_curve[i])
 	end
-	
+
 end #shrunkenSAA
 
 
+
+@testset "KS Robust tests" begin
+	#discrete newsvendors supported 1:d
+	K = 10
+	s = .95
+	d = 10
+	N = 20
+	Random.seed!(8675309)
+
+	#gen an "interesting" distribution of ps still centered at 1/d
+	p0 = ones(d)/d
+	anchor = vcat(1., zeros(d-1))
+	p0 = .5 * p0 + .5 * anchor
+	ps = rand(Dirichlet(ones(d)), floor(Int, K/2))
+	qs = rand(Dirichlet(5 * ones(d)), K-floor(Int, K/2))
+	ps = [ps qs]
+
+	alpha_grid = range(0, stop=50, length=75)
+	lams = ones(K)
+	Nhats = rand(Poisson(N), K)
+	mhats = JS.sim_path(ps, Nhats);
+
+	supps =  repeat(collect(1:d), outer=(1, K))
+
+	#static sets
+	csKS, xsKS = JS.genKSNewsvendorsDiffSupp(supps, s, K, :aPriori)
+	csKS2, xsKS2 = JS.genKSNewsvendorsDiffSupp(supps, s, K, :crossVal)
+
+	#First some pointwise tests for different gamma
+	@test isapprox(JS.zbar(xsKS, csKS, mhats, ps, lams, 0),    4.4069742640419935)
+	@test isapprox(JS.zbar(xsKS, csKS, mhats, ps, lams, .005), 4.42815638411843)
+	@test isapprox(JS.zbar(xsKS, csKS, mhats, ps, lams, 30),   4.675982233256429)
+
+	#one test for the cross-val version
+	Gamma_grid = range(0, stop=N/5, length=51)
+	@test isapprox(JS.zbar(xsKS2, csKS, mhats, ps, lams, (Gamma_grid, 5)), 4.428156384118435)
+	
+end #shrunkenSAA
 
 
 
