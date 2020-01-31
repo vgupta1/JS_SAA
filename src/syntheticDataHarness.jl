@@ -25,15 +25,16 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 	p0 = ones(d)/d
 	alpha_grid = range(0., stop=alpha_max, length=alpha_len)
-	Gamma_grid = range(0, stop = sqrt(maximum(N_grid)) * (1-s), length=51)
+	Gamma_grid = range(0, stop = (1-s), length=51)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")
 	writedlm(f, ["Run" "K" "d" "N" "Method" "TruePerf" "time" "alpha"], ',')
 
 	#generate all Kmax subproblems upfront and store in memory
-	cs_full, xs_full = JS.genNewsvendorsDiffSupp(supp_full, s, Kmax)
-	csKS_full, xsKS_full = JS.genKSNewsvendorsDiffSupp(supp_full, s, Kmax, :crossVal)
+	cs_full = JS.getNewsVendorCosts(supp_full, s, Kmax)
+	xs_full = JS.genSSAAtrainers(supp_full, s, Kmax)
+	xsKS_full = JS.genKSTrainers(supp_full, s, Kmax, :crossVal)
 
 	lam_full = ones(Kmax)
 
@@ -54,7 +55,6 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			mhats = view(mhats_full, 1:d, 1:K)
 			cs = view(cs_full, 1:d, 1:K)
 			xs = view(xs_full, 1:K)
-			csKS = view(csKS_full, 1:d, 1:K)
 			xsKS = view(xsKS_full, 1:K)
 
 			#for data-driven shrinkage anchor
@@ -136,7 +136,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 			##KS version with cross-val
 			t = 
-			  @elapsed perf_KS = JS.zbar(xsKS, csKS, mhats, ps, lams, (Gamma_grid, 5))
+			  @elapsed perf_KS = JS.zbar(xsKS, cs, mhats, ps, lams, (Gamma_grid, 5))
 			writedlm(f, [iRun K d N "KS" perf_KS t 0.0], ',')
 
 		end  #end K Loop

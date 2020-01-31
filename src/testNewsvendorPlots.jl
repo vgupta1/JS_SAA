@@ -26,7 +26,8 @@ function runTest(numRuns, K, outPath; usePoisson=true)
 	alpha_grid = range(0, stop=50, length=75)
 	lams = ones(K)
 
-	cs, xs = JS.genNewsvendorsDiffSupp(repeat(1:d, inner=(1, K)), s, K)
+	cs = JS.getNewsVendorCosts(repeat(1:d, inner=(1, K)), s, K)
+	xs = JS.genSSAAtrainers(repeat(1:d, inner=(1, K)), s, K)
 
 	f = open("$(outPath)_$(K)_$(numRuns).csv", "w")
 

@@ -21,7 +21,8 @@ function genSinglePathCurves(seed=8675309)
 
 	#gen problems
 	supp = collect(1:d)
-	cs, xs = JS.genNewsvendorsDiffSupp(repeat(supp, inner=(1, K)), s, K)
+	cs = JS.getNewsVendorCosts(repeat(supp, inner=(1, K)), s, K)
+	xs = JS.genSSAAtrainers(repeat(supp, inner=(1, K)), s, K)
 	Nhats = rand(Poisson(N), K)
 	Nhats[ Nhats .== 0] .= 1
 	lams = ones(K)
@@ -71,7 +72,8 @@ function genHistogramPlots_multiple(numRuns = 1000)
 	alpha_grid = range(0, stop=3N, length=100)
 	lams = ones(K)
 
-	cs, xs = JS.genNewsvendorsDiffSupp(repeat(collect(1:d), inner=(1, K)), s, K)
+	cs = JS.getNewsVendorCosts(repeat(collect(1:d), inner=(1, K)), s, K)
+	xs = JS.genSSAAtrainers(repeat(collect(1:d), inner=(1, K)), s, K)
 
 	f = open("$(outPath)_$(K)_$(numRuns).csv", "w")
 

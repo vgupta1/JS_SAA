@@ -36,7 +36,8 @@ function back_test(K_grid, supp_full, ps_full, binned_data_full, dates, outPath,
 	writedlm(f, ["StartDate" "K" "d" "N" "Method" "TruePerf" "time" "alpha"], ',')
 
 	#generate all Kmax subproblems upfront and store in memory
-	cs_full, xs_full = JS.genNewsvendorsDiffSupp(supp_full, s, Kmax)
+	cs_full = JS.getNewsVendorCosts(supp_full, s, Kmax)
+	xs_full = JS.genSSAAtrainers(supp_full, s, Kmax)
 	lam_full = ones(Kmax)
 
 	for N in N_grid

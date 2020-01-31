@@ -1,7 +1,7 @@
 ## General purpose functions 
 
 #User is expected to pass functions
-#x_k(p0, alpha, mhatk)  : provides a solution with data mhatk
+#x_k(mhatk, hyperparam)  : provides a solution with data mhatk using hyperparam (e.g., p0, alpha)
 #c_ik(x)      		
 #These are often collected into arrays of functions
 # xs			: [x_k for k = 1:K ]
@@ -235,105 +235,6 @@ function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	end
 	return alphaCV, jstar, out
 end	
-
-#simple discrete quantile
-function nv_quantile(pk, supp_k, s) 
-	if s <= 0
-		return supp_k[1]
-	elseif s >= 1
-		return supp_k[end]
-	end
-	supp_k[ quantile(Categorical(pk), s) ] 
-end
-
-###  
-# Ideally should have a broadcast implementation that combines
-# previous two...
-function genNewsvendorsDiffSupp(supps, s, K)
-	#Generic computation of the sth quantile 
-	function x_k(mhat_k, k, s, p0, alpha) 
-	    Nhat_k = sum(mhat_k)
-	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
-		nv_quantile(palpha, supps[:, k], s)	    
-	end
-
-	function c_ik(i, k, x, s)
-	    supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
-	end
-
-	xs = [(mhat_k, (p0, alpha))-> x_k(mhat_k, k, s, p0, alpha) for k = 1:K]
-	cs = [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
-	cs, xs
-end
-
-function genKSNewsvendorsDiffSupp(supps, s, K, method)
-	#@VG factor out this logic.
-	function c_ik(i, k, x, s)
-	    supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
-	end
-	cs = [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
-
-	#Computes the s + Gamma/sqrt N_k sample quantile 
-	function x_k(mhat_k, k, s, Gamma::Number) 
-	    Nhat_k = sum(mhat_k)
-	    if Nhat_k == 0  #when there's no data, return maximum
-	    	return supps[end, k]
-	    end
-	    phat = mhat_k./Nhat_k
-	    nv_quantile(phat, supps[:, k], s + Gamma/sqrt(Nhat_k))
-	end
-
-	#does K-fold cross-validation to determine Gamma
-	function x_k(mhat_k, k, s, Gamma_grid, numFolds) 
-	    Nhat_k = round(Int, sum(mhat_k))
-	    #divy the data into cross-val sets
-    	splits = mod.(1:Nhat_k, numFolds) .+ 1
-    	shuffle!(splits)
-    	cv_data = [zero(mhat_k) for fold = 1:numFolds]
-
-    	ix_split = 1
-        for i = 1:length(mhat_k)
-            for j = 1:round(Int, mhat_k[i])
-                cv_data[splits[ix_split]][i] += 1
-                ix_split += 1            
-            end
-        end
-
-	    #for each set train and evaluate
-	    out = zero(Gamma_grid)
-	    for (ix, Gamma) in enumerate(Gamma_grid)
-		    for fold = 1:numFolds
-		    	train_data = sum(cv_data[setdiff(1:numFolds, fold)])
-		    	Nhat_train = sum(train_data)
-		    	if Nhat_train == 0.
-		    		x = supps[end, k]
-		    	else
-			    	phat = train_data ./ Nhat_train
-			    	x = nv_quantile(phat, supps[:, k], s+Gamma/sqrt(Nhat_train))
-			    end
-
-	    		costs = [c(x) for c in cs[:, k]]
-	    		out[ix] += dot(cv_data[fold], costs) / (Nhat_k - Nhat_train)
-	    	end
-	    	out[ix] /= numFolds
-	    end
-
-	    #identify who is best and retrain
-	    Gammastar = Gamma_grid[argmin(out)]
-	    #println(k, "\t", Gammastar)
-	    x_k(mhat_k, k, s, Gammastar) 
-	end
-
-	if method == :aPriori
-		xs  = [(mhat_k, Gamma)-> x_k(mhat_k, k, s, Gamma) for k = 1:K]
-	elseif method == :crossVal
-		xs = [(mhat_k, (Gamma_grid, numFolds)) -> x_k(mhat_k, k, s, Gamma_grid, numFolds) for k = 1:K]
-	else
-		throw("Method must be one of aPriori or ???")
-	end
-
-	cs, xs
-end
 
 #### Helper function for binning data
 #dat_vec is vector of actual realizations

@@ -113,7 +113,8 @@ end
 	mhats = JS.sim_path(ps, Nhats);
 
 	supps =  repeat(collect(1:d), outer=(1, K))
-	cs, xs = JS.genNewsvendorsDiffSupp(supps, s, K)
+	cs = JS.getNewsVendorCosts(supps, s, K)
+	xs = JS.genSSAAtrainers(supps, s, K)
 
 	#First some pointwise tests
 	@test isapprox(JS.z_k(xs[1], cs[:, 1], mhats[:, 1], ps[:, 1], 1, 1, (p0, 1)), 3.2530462468808903)
@@ -175,19 +176,20 @@ end #shrunkenSAA
 	supps =  repeat(collect(1:d), outer=(1, K))
 
 	#static sets
-	csKS, xsKS = JS.genKSNewsvendorsDiffSupp(supps, s, K, :aPriori)
-	csKS2, xsKS2 = JS.genKSNewsvendorsDiffSupp(supps, s, K, :crossVal)
+	cs = JS.getNewsVendorCosts(supps, s, K)
+	xsKS = JS.genKSTrainers(supps, s, K, :aPriori)
+	xsKS2 = JS.genKSTrainers(supps, s, K, :crossVal)
 
 	#First some pointwise tests for different gamma
-	@test isapprox(JS.zbar(xsKS, csKS, mhats, ps, lams, 0),    4.4069742640419935)
-	@test isapprox(JS.zbar(xsKS, csKS, mhats, ps, lams, .005), 4.42815638411843)
-	@test isapprox(JS.zbar(xsKS, csKS, mhats, ps, lams, 30),   4.675982233256429)
+	@test isapprox(JS.zbar(xsKS, cs, mhats, ps, lams, 0),    4.427097278114614)
+	@test isapprox(JS.zbar(xsKS, cs, mhats, ps, lams, .025), 4.38864696562911)
+	@test isapprox(JS.zbar(xsKS, cs, mhats, ps, lams, .05),   4.6573883655136825)
 
 	#one test for the cross-val version
-	Gamma_grid = range(0, stop=N/5, length=51)
-	@test isapprox(JS.zbar(xsKS2, csKS, mhats, ps, lams, (Gamma_grid, 5)), 4.428156384118435)
+	Gamma_grid = range(0, stop=1-s, length=51)
+	@test isapprox(JS.zbar(xsKS2, cs, mhats, ps, lams, (Gamma_grid, 5)), 4.559215177976772)
 	
-end #shrunkenSAA
+end #KS Tests
 
 
 
