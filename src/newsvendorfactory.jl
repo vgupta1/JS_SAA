@@ -7,6 +7,8 @@ function nv_quantile(pk, supp_k, s)
 	elseif s > 1
 		return supp_k[end]
 	end
+	@assert isprobvec(pk) "Not Probability: $(sum(pk)) $(minimum(pk)) \n $pk"
+
 	supp_k[ quantile(Categorical(pk), s) ] 
 end
 

@@ -114,6 +114,13 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, phat_avg, alpha_grid)
 			writedlm(f, [iRun K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO], ',')
 
+			## Optimizing the LOO Anchor
+			t = 
+			  @elapsed p0, alphaLOO, loo_val = JS.loo_anchor(xs, cs, mhats, init_alpha = sqrt(alphaLOO), numClusters = (K >= 20 ? 20 : -1), info=true )
+			perf = JS.zbar(xs, cs, mhats, ps, lams, (p0, alphaLOO))
+			writedlm(f, [iRun K d N "OptAnchor" perf t alphaLOO], ',')
+			println("% Improve on Anchor:\t", 1-loo_val/looUnsc_curve[min_indx])
+
 			#Gen the CV2 cost with the GM Anchor
 			t = 
 			  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 2)

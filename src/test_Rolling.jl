@@ -4,7 +4,10 @@
 	#ARGS[2] is d must be one of 20, 50, 1000
 	#ARGS[3] specifies the data stub:  one of AdjSales_NoWeekends, AdjSales_NoWeekends_RowShuffle, etc.
 
-include("rollingHarness.jl")
+using Distributed
+
+#VG Check you cna dump this?
+#include("rollingHarness.jl")
 
 const spath = ARGS[1]
 const param_path = ARGS[3] # e.g. "AdjSales_NoWeekends"

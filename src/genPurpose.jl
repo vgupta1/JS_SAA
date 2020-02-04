@@ -4,14 +4,14 @@
 #x_k(mhatk, hyperparam)  : provides a solution with data mhatk using hyperparam (e.g., p0, alpha)
 #c_ik(x)      		
 #These are often collected into arrays of functions
-# xs			: [x_k for k = 1:K ]
-# c_k  			: [c_ik for i = 1:d ]
+# xs			: [x_k for k = 1:K]
+# c_k  			: [c_ik for i = 1:d]
 # cs			: (d, K) Matrix with elements c_ik
 
 #General purpose functions
 ###
-function shrink(phat_k, p0, alpha, Nhat_k)
-	if Nhat_k == 0
+function shrink(phat_k, p0, alpha, Nhat_k; alphaMax = 1e10)
+	if Nhat_k == 0 || alpha > alphaMax
 		return p0
 	end
 	@. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
@@ -180,8 +180,6 @@ function zCVbar_unsc(xs, cs, cv_data, hyper_param)
 	return out
 end
 
-
-
 #returns alphaOR, minimizingAlphaIndex, curveInAlpha
 function oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
 	alphaOR = 0.
@@ -216,7 +214,6 @@ function loo_alpha(xs, cs, mhats, p0, alpha_grid)
 	return alphaLOO, jstar, out
 end	
 
-
 function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	#divy up the data
 	cv_data = split_cv(mhats, numFolds)
@@ -235,6 +232,98 @@ function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	end
 	return alphaCV, jstar, out
 end	
+
+#maps ys to simplex somewhat safely
+function soft_max(ys)
+	ymax = maximum(ys)
+	weights = exp.(ys .- ymax)
+	weights /= sum(weights)
+
+	#DEBUG
+	@assert isprobvec(weights) "soft_max fail: \n $ys \n $weights"
+
+	weights
+end
+
+#optimizes choice of anchor and alpha by approx minimizing LOO
+#Heuristic usese particle swarm a 2 starts. 
+#Passing numClusters = -1 makes anchor a linear comb of all phats
+#return anchor, alpha, loo val
+function loo_anchor(xs, cs, mhats; numClusters = 20, init_sqrt_alpha = 1.,
+                    time_limit = 60., iterations=1000, store_trace=false, info=false)
+    #First cluster to find points.
+    phats = mhats ./ sum(mhats, dims=1)
+    if numClusters < 0
+    	mix_comp = phats
+    	numClusters = size(phats, 2)
+    else
+	    cluster_res = kmeans(phats, numClusters; maxiter=50)
+    	mix_comp = cluster_res.centers       
+	end    
+
+    #add the grandmean for ease
+    mix_comp = hcat(mix_comp, JS.get_GM_anchor(mhats))
+
+    #### DEBUG
+    #confirm that everyone in mix_comp isn't dumb
+    for ix = 1:size(mix_comp, 2)
+    	@assert isprobvec(mix_comp[:, ix]) "Not a probability component"  
+    end
+    if sum( mix_comp .== NaN ) > 0
+    	throw("One of the mixture components has a NaN")
+    end
+    if sum( mix_comp .== Inf ) > 0
+    	throw("One of the mix components as an Inf")
+    end
+    println("Mix Comp Passed Test")
+    #END DEBUG
+
+
+    #write aux function 
+    function f(ys)
+        #use softmax to ensure simplex
+        weights = soft_max(ys[1:end-1])
+        p0 = vec(mix_comp * weights)        
+        alpha = (ys[end])^2
+        @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
+        
+        println("Alpha Iteration:\t", alpha)
+        JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha))            
+    end
+    
+    #optimize with two starting points and take best one
+    x01 = [ones(numClusters + 1); init_sqrt_alpha]
+    info && println("First initalization")
+    init_val1 = f(x01)
+	info && println("First optimization")
+    @time res1 = optimize(f, x01, 
+                    ParticleSwarm(n_particles=10), 
+                    Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
+    z1 = Optim.minimum(res1)
+    
+    x02 = [zeros(numClusters); 1.; init_sqrt_alpha]
+    info && println("Second initalization")
+    init_val2 = f(x02)
+	info && println("second optimization")
+    @time res2 = optimize(f, x02, 
+                    ParticleSwarm(n_particles=10), 
+                    Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
+    z2 = Optim.minimum(res2)
+    
+    if z1 < z2    
+        xstar = Optim.minimizer(res1)
+        zstar = z1
+    else
+        xstar = Optim.minimizer(res2)
+        zstar = z2
+    end
+    info && println("Perc: Improv over LOO GM:\t", 1- zstar / init_val2)
+    
+    weights = soft_max(xstar[1:end-1])
+    p0 = vec(mix_comp * weights)       
+    alpha = (xstar[end])^2
+    p0, alpha, zstar
+end    
 
 #### Helper function for binning data
 #dat_vec is vector of actual realizations
