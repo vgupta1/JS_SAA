@@ -264,19 +264,19 @@ function loo_anchor(xs, cs, mhats; numClusters = 20, init_sqrt_alpha = 1.,
     #add the grandmean for ease
     mix_comp = hcat(mix_comp, JS.get_GM_anchor(mhats))
 
-    #### DEBUG
-    #confirm that everyone in mix_comp isn't dumb
-    for ix = 1:size(mix_comp, 2)
-    	@assert isprobvec(mix_comp[:, ix]) "Not a probability component"  
-    end
-    if sum( mix_comp .== NaN ) > 0
-    	throw("One of the mixture components has a NaN")
-    end
-    if sum( mix_comp .== Inf ) > 0
-    	throw("One of the mix components as an Inf")
-    end
-    println("Mix Comp Passed Test")
-    #END DEBUG
+    # #### DEBUG
+    # #confirm that everyone in mix_comp isn't dumb
+    # for ix = 1:size(mix_comp, 2)
+    # 	@assert isprobvec(mix_comp[:, ix]) "Not a probability component"  
+    # end
+    # if sum( mix_comp .== NaN ) > 0
+    # 	throw("One of the mixture components has a NaN")
+    # end
+    # if sum( mix_comp .== Inf ) > 0
+    # 	throw("One of the mix components as an Inf")
+    # end
+    # println("Mix Comp Passed Test")
+    # #END DEBUG
 
 
     #write aux function 
