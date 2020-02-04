@@ -238,8 +238,6 @@ function soft_max(ys)
 	ymax = maximum(ys)
 	weights = exp.(ys .- ymax)
 	weights /= sum(weights)
-
-	#DEBUG
 	@assert isprobvec(weights) "soft_max fail: \n $ys \n $weights"
 
 	weights
@@ -286,25 +284,19 @@ function loo_anchor(xs, cs, mhats; numClusters = 20, init_sqrt_alpha = 1.,
         p0 = vec(mix_comp * weights)        
         alpha = (ys[end])^2
         @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        
-        println("Alpha Iteration:\t", alpha)
         JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha))            
     end
     
     #optimize with two starting points and take best one
     x01 = [ones(numClusters + 1); init_sqrt_alpha]
-    info && println("First initalization")
     init_val1 = f(x01)
-	info && println("First optimization")
     @time res1 = optimize(f, x01, 
                     ParticleSwarm(n_particles=10), 
                     Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
     z1 = Optim.minimum(res1)
     
     x02 = [zeros(numClusters); 1.; init_sqrt_alpha]
-    info && println("Second initalization")
     init_val2 = f(x02)
-	info && println("second optimization")
     @time res2 = optimize(f, x02, 
                     ParticleSwarm(n_particles=10), 
                     Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
@@ -344,7 +336,6 @@ function bin_data(dat_vec, d; TOL = .001)
     dat_hist = fit(Histogram, dat_vec, bin_edges, closed =:left)
     bin_edges[1:d], dat_hist.weights, dat_hist    
 end
-
 
 ###Helper function for splitting data for k-fold cross-validation
 #This is not a memory efficient implementation
