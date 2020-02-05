@@ -116,7 +116,6 @@ function genSinglePathCurves(seed=8675309)
 	close(f)
 end
 
-
 function genBadSinglePathCurves(seed=8675409)
 	K = 10000
 	N = 10
@@ -130,7 +129,7 @@ function genBadSinglePathCurves(seed=8675409)
 	f = open("../Results/single_path_curves_bad_presentation.csv", "w")
 
 	Nhats = rand(Poisson(N), K)
-	Nhats[ Nhats .== 0] .= 1
+	Nhats[Nhats .== 0] .= 1
 	mhats = JS.nv_sim_path(ps, Nhats);
 
 	Random.seed!(seed)

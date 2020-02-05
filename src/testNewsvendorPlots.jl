@@ -1,11 +1,6 @@
-### 
-# This file is likely subsumed by presentationPlots.jl
-####
-
-
 ###
 # Generates a histogram for SAA, Alpha LOO, and Alpha OR
-# Used for illustrative picture in presentation
+# Used for illustrative picture in Introduction.
 ###
 using Distributions, Random, DelimitedFiles
 include("../src/JS_SAA_main.jl")
