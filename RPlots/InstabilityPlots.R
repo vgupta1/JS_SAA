@@ -1,26 +1,19 @@
 #### 
 #Generates the SubOptimality-Instability Tradeoff Curves 
-# for Simple Newsvendor example
+# for the Simple Newsvendor examples in Fig. 5 and EC.1
 ####
 library(tidyverse)
 library(ggplot2)
-library(latex2exp)
-library(stringr)
-library(extrafont)
-
-library(showtext)
-font_add("Times New Roman", "Times New Roman.ttf")
-showtext_auto()
-
+library(tikzDevice)
 
 # dat = read_csv("../Results/PaperPlots/TradeoffBad.csv")
-# graph_path = "InstabilityBad.pdf"
+# graph_path = "InstabilityBad.tex"
 
-dat = read_csv("../Results/PaperPlots/TradeoffGoodP0.csv")
-graph_path = "InstabilityGoodP0.pdf"
+# dat = read_csv("../Results/PaperPlots/TradeoffGoodP0.csv")
+# graph_path = "InstabilityGoodP0.tex"
 
-# dat = read_csv("../Results/PaperPlots/TradeoffGoodS.csv")
-# graph_path = "InstabilityGoodS.pdf"
+dat = read_csv("../Results/PaperPlots/TradeoffGoodS.csv")
+graph_path = "InstabilityGoodS.tex"
 
 
 #melt it down for simplicity
@@ -30,20 +23,23 @@ dat.melt <- dat %>% select(-LOO,-OR) %>%
 g1 <- dat.melt %>% 
   ggplot(aes(Alpha, Value, group=Type, color=Type)) + 
   geom_line(aes(linetype=Type)) + 
-  theme_minimal(base_size=10, base_family = "Times New Roman") + 
-  xlab(TeX("$\\alpha$")) + ylab("") + 
+  theme_minimal(base_size=8) + 
+  xlab("$\\alpha$") + ylab("") + 
   theme(legend.title=element_blank(), 
         legend.position=c(.4, .8) )
 
-if (graph_path == "InstabilityGoodS.pdf"){
+if (graph_path == "InstabilityGoodS.tex"){
   g1 <- g1 + theme(legend.position = c(.6, .5))
 }
-ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/", graph_path), 
-       g1, height=2, width=2, units="in")
+
+tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/", graph_path), 
+     width = 2, height = 2)
+g1
+dev.off()
 
 
 ### The LOO version
-#melt it down agai
+#melt it down again
 N = 10 #(for scaling purposes)
 dat.melt <- dat %>% 
   mutate(LOO = LOO  / N) %>%
@@ -53,11 +49,14 @@ dat.melt <- dat %>%
 g2 <-   dat.melt %>% 
   ggplot(aes(Alpha, Value, group=Type, color=Type)) + 
   geom_line(aes(linetype=Type)) + 
-  theme_minimal(base_size=10, base_family = "Times New Roman") + 
-  xlab(TeX("$\\alpha$")) + ylab("") + 
+  theme_minimal(base_size=8) + 
+  xlab("$\\alpha$") + ylab("") + 
   theme(legend.title=element_blank(), 
         legend.position=c(.4, .8) )
 
-ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/LOO", graph_path), 
-       g2, height=2, width=2, units="in")
+tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/LOO", graph_path), 
+     width = 2, height = 2)
+g2
+dev.off()
+
 

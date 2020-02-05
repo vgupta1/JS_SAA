@@ -4,53 +4,6 @@
 using Distributions, Random, DelimitedFiles
 include("../src/JS_SAA_main.jl")
   
-#Then update the bad example to the one from the paper.  
-function genSinglePathCurves(seed=8675309)
-	K = 10000
-	s = .91
-	d = 75
-	N = 10
-	f = open("../Results/single_path_curves_presentation.csv", "w")
-
-	Random.seed!(seed)
-
-	ps = rand(Dirichlet(ones(d)), floor(Int, K/2))
-	ps = [ps rand(Dirichlet(.025 * ones(d)), K - floor(Int, K/2)) ]
-	@assert size(ps, 2) == K
-	@assert size(ps, 1) == d
-
-	#gen problems
-	supp = collect(1:d)
-	cs = JS.getNewsVendorCosts(repeat(supp, inner=(1, K)), s, K)
-	xs = JS.genSSAAtrainers(repeat(supp, inner=(1, K)), s, K)
-	Nhats = rand(Poisson(N), K)
-	Nhats[ Nhats .== 0] .= 1
-	lams = ones(K)
-
-	full_info = JS.zstar(xs, cs, ps, lams)
-
-	#gen data
-	mhats = JS.sim_path(ps, Nhats)
-	p0 = JS.get_GM_anchor(mhats)
-	alpha_grid = range(0, stop=3N, length=100)
-
-	#note, this actually computes N * ZLoo
-	alphaOR, jstar, outOR =  JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
-	alphaLOO, jloo, loo_perf = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
-	loo_perf /= N
-
-	saa_subopt = map(a-> JS.zbar(xs, cs, p0, a, mhats, mhats, lams), alpha_grid) ./ N
-	saa_zero = saa_subopt[1]
-	saa_subopt = saa_subopt .- saa_zero
-	instab = loo_perf - saa_subopt .- saa_zero;
-
-	#Header
-	writedlm(f, ["alpha" "OR" "LOO" "SAASubopt" "Instab"], ',')
-	writedlm(f, [vec(alpha_grid) outOR loo_perf saa_subopt instab], ',')
-	close(f)
-end
-
-
 #K = 10,0000 Same set up as above
 function genHistogramPlots_multiple(numRuns = 1000)
 	Random.seed!(8675309)
@@ -98,20 +51,10 @@ function genHistogramPlots_multiple(numRuns = 1000)
 		#for data-driven shrinkage anchor
 		phat_avg = JS.get_GM_anchor(mhats)
 
-		#Gen the SAA const
-		# t = 
-		#   @elapsed perf_SAA = JS.zbar(xs, cs, p0, 0., mhats, ps, lams)
-		# writedlm(f, [iRun "SAA" perf_SAA t 0.0], ',')
-
 		#Gen the Oracle const
 		t = 
 		  @elapsed alphaOR, min_indx, or_alpha_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
 		writedlm(f, [iRun "Oracle" or_alpha_curve[min_indx] t alphaOR], ',')
-
-		#Gen the LOO cost with 1/d shrinkage
-		# t = 
-		#   @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
-		# writedlm(f, [iRun "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
 		#Gen the LOO cost with the phatAvg shrinkage
 		t = 
@@ -125,6 +68,54 @@ function genHistogramPlots_multiple(numRuns = 1000)
 	end #endRun
 	close(f)	
 end
+
+
+#Generates nice oracle curve used in the presentation slides with a U shape  
+function genSinglePathCurves(seed=8675309)
+	K = 10000
+	s = .91
+	d = 75
+	N = 10
+	f = open("../Results/single_path_curves_presentation.csv", "w")
+
+	Random.seed!(seed)
+
+	ps = rand(Dirichlet(ones(d)), floor(Int, K/2))
+	ps = [ps rand(Dirichlet(.025 * ones(d)), K - floor(Int, K/2)) ]
+	@assert size(ps, 2) == K
+	@assert size(ps, 1) == d
+
+	#gen problems
+	supp = collect(1:d)
+	cs = JS.getNewsVendorCosts(repeat(supp, inner=(1, K)), s, K)
+	xs = JS.genSSAAtrainers(repeat(supp, inner=(1, K)), s, K)
+	Nhats = rand(Poisson(N), K)
+	Nhats[ Nhats .== 0] .= 1
+	lams = ones(K)
+
+	full_info = JS.zstar(xs, cs, ps, lams)
+
+	#gen data
+	mhats = JS.sim_path(ps, Nhats)
+	p0 = JS.get_GM_anchor(mhats)
+	alpha_grid = range(0, stop=3N, length=100)
+
+	#note, this actually computes N * ZLoo
+	alphaOR, jstar, outOR =  JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
+	alphaLOO, jloo, loo_perf = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
+	loo_perf /= N
+
+	saa_subopt = map(a-> JS.zbar(xs, cs, p0, a, mhats, mhats, lams), alpha_grid) ./ N
+	saa_zero = saa_subopt[1]
+	saa_subopt = saa_subopt .- saa_zero
+	instab = loo_perf - saa_subopt .- saa_zero;
+
+	#Header
+	writedlm(f, ["alpha" "OR" "LOO" "SAASubopt" "Instab"], ',')
+	writedlm(f, [vec(alpha_grid) outOR loo_perf saa_subopt instab], ',')
+	close(f)
+end
+
 
 function genBadSinglePathCurves(seed=8675409)
 	K = 10000
