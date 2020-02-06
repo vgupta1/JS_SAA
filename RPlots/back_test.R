@@ -1,14 +1,10 @@
 ### Used to analyze results from teh back-testing experiments
 library(tidyverse)
 library(ggplot2)
-library(latex2exp)
 library(stringr)
-library(extrafont)
 library(forcats)
-
-library(showtext)
-font_add("Times New Roman", "Times New Roman.ttf")
-showtext_auto()
+library(scales) #To properlyf ormat percent axis
+library(tikzDevice)
 
 ## Load up 3 files of various d's
 dat1 = dat = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__20_AdjSales_NoWeekends_ShuffleWithinCol.csv")
@@ -70,17 +66,20 @@ saveHistoricalPlot <- function(d_val){
     geom_point(position=pd) + geom_line(position=pd) +
     geom_errorbar(aes(ymax = avgRelBenefit + stdErr, 
                       ymin=avgRelBenefit-stdErr), position=pd) +
-    theme_minimal(base_size = 10, 
-                  base_family="Times New Roman") + 
-    scale_y_continuous(labels = scales::percent) + 
+    theme_minimal(base_size = 8) + 
+    scale_y_continuous(labels=function(x){percent(x, suffix="\\%", accuracy = .1)}) + 
     scale_x_log10()+
-    ylab("Benefit over SAA (%)") +
+    ylab("Benefit over SAA (\\%)") +
     theme(legend.title=element_blank(), 
           legend.position = c(.5, .9), 
           legend.direction= "horizontal") 
-  
-  ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/backtest_", d_val, ".pdf"), 
-         g, units = "in", height=3.25, width = 3.25 )
+  # ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/backtest_", d_val, ".pdf"), 
+  #        g, units = "in", height=3.25, width = 3.25 )
+
+  tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/backtest_", d_val, ".tex"), 
+       width = 3, height = 3)
+  print(g)
+  dev.off()
 }
 
 saveHistoricalPlot(20)
@@ -89,28 +88,31 @@ saveHistoricalPlot(1000)
 
 ### Similar graph but varying d and only the ShrunkenSAA
 #First filter down to the Shrunken SAA and add a column renaming
-
 pd = position_dodge(.1)
 g <- dat.sum %>% 
   filter(Method %in% c("LOO_avg", "LOO_unif"), 
          N == 10) %>%
   arrange(K, d) %>%
-  mutate(Labels2 = str_c(Labels, ", d=", if_else(d==1000, "Inf", as.character(d))), 
+  mutate(Labels2 = str_c(Labels, ", $d=", if_else(d==1000, "\\infty", as.character(d)), "$"), 
          ) %>%
   ggplot(aes(K, avgRelBenefit, group=Labels2, color=Labels2, linetype=Labels2, shape=Labels2)) + 
   geom_point(position=pd) + geom_line(position=pd) +
-  theme_minimal(base_size = 10, 
-                base_family="Times New Roman") + 
-  scale_y_continuous(labels = scales::percent) + 
+  theme_minimal(base_size = 8) + 
+  scale_y_continuous(labels=function(x){percent(x, suffix="\\%", accuracy = .1)}) + 
   scale_x_log10()+
-  ylab("Benefit over SAA (%)") +
+  ylab("Benefit over SAA (\\%)") +
   theme(legend.title=element_blank(), 
         legend.position = c(.7, .3), 
         legend.direction= "horizontal") + 
   guides(color=guide_legend(ncol=1,byrow=TRUE))
 
-ggsave("../../DataPoolingTex/Paper_V1/Figures/comparing_d.pdf", 
-       g, units="in", width=3.25, height=3.25)
+# ggsave("../../DataPoolingTex/Paper_V1/Figures/comparing_d.pdf", 
+#        g, units="in", width=3.25, height=3.25)
+
+tikz(file = "../../DataPoolingTex/MS_Submission_R2/Paper/Figures/comparing_d.tex", 
+     width = 3, height = 3)
+g
+dev.off()
 
 
 ##########################################
@@ -122,21 +124,30 @@ genHistPlot_N<- function( Nval ){
     geom_point(position=pd) + geom_line(position=pd) +
     geom_errorbar(aes(ymax = avgRelBenefit + stdErr, 
                       ymin=avgRelBenefit-stdErr), position=pd) +
-    theme_minimal(base_size = 10, 
-                  base_family="Times New Roman") + 
-    scale_y_continuous(labels = scales::percent) + 
+    theme_minimal(base_size = 8) + 
+    scale_y_continuous(labels=function(x){percent(x, suffix="\\%", accuracy = .1)}) + 
     scale_x_log10()+
-    ylab("Benefit over SAA (%)") +
+    ylab("Benefit over SAA (\\%)") +
     theme(legend.title=element_blank(), 
           legend.position = c(.5, .9), 
           legend.direction= "horizontal")  
 }
 
 g <- genHistPlot_N(20)
-ggsave("../../DataPoolingTex/Paper_V1/Figures/HistPlotN20.pdf", 
-       g, units="in", width=3.25, height=3.25)
+# ggsave("../../DataPoolingTex/Paper_V1/Figures/HistPlotN20.pdf", 
+#        g, units="in", width=3.25, height=3.25)
+
+tikz(file = "../../DataPoolingTex/MS_Submission_R2/Paper/Figures/HistPlotN20.tex", 
+     width = 3, height = 3)
+g
+dev.off()
+
 
 g <- genHistPlot_N(40)
-ggsave("../../DataPoolingTex/Paper_V1/Figures/HistPlotN40.pdf", 
-       g, units="in", width=3.25, height=3.25)
+# ggsave("../../DataPoolingTex/Paper_V1/Figures/HistPlotN40.pdf", 
+#        g, units="in", width=3.25, height=3.25)
 
+tikz(file = "../../DataPoolingTex/MS_Submission_R2/Paper/Figures/HistPlotN40.tex", 
+     width = 3, height = 3)
+g
+dev.off()

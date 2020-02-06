@@ -6,13 +6,13 @@ library(tidyverse)
 library(ggplot2)
 library(tikzDevice)
 
-# dat = read_csv("../Results/PaperPlots/TradeoffBad.csv")
+# dat = read_csv("../Results/TradeoffBadtrue.csv")
 # graph_path = "InstabilityBad.tex"
 
-# dat = read_csv("../Results/PaperPlots/TradeoffGoodP0.csv")
+# dat = read_csv("../Results/TradeoffGoodP0true.csv")
 # graph_path = "InstabilityGoodP0.tex"
 
-dat = read_csv("../Results/PaperPlots/TradeoffGoodS.csv")
+dat = read_csv("../Results/TradeoffGoodStrue.csv")
 graph_path = "InstabilityGoodS.tex"
 
 
@@ -42,7 +42,7 @@ dev.off()
 #melt it down again
 N = 10 #(for scaling purposes)
 dat.melt <- dat %>% 
-  mutate(LOO = LOO  / N) %>%
+#  mutate(LOO = LOO  / N) %>%
   select(Alpha, LOO,OR) %>%
   gather(Type, Value,-Alpha)
 
