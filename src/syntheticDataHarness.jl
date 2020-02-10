@@ -83,7 +83,6 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
 			writedlm(f, [iRun K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
-
 			#Gen the 2-Fold Cost with 1/d anchor
 			t = 
 			  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 2)
@@ -116,8 +115,8 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 
 			## Optimizing the LOO Anchor
 			t = 
-			  @elapsed p0, alphaLOO, loo_val = JS.loo_anchor(xs, cs, mhats, init_sqrt_alpha = sqrt(alphaLOO), numClusters = (K >= 20 ? 20 : -1), info=true )
-			perf = JS.zbar(xs, cs, mhats, ps, lams, (p0, alphaLOO))
+			  @elapsed optp0, alphaLOO, loo_val = JS.loo_anchor(xs, cs, mhats, init_sqrt_alpha = sqrt(alphaLOO), numClusters = (K >= 20 ? 20 : -1), info=true )
+			perf = JS.zbar(xs, cs, mhats, ps, lams, (optp0, alphaLOO))
 			writedlm(f, [iRun K d N "OptAnchor" perf t alphaLOO], ',')
 			println("% Improve on Anchor:\t", 1-loo_val/looUnsc_curve[min_indx])
 

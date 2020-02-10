@@ -159,8 +159,8 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 
 				## Optimizing the LOO Anchor
 				t = 
-				  @elapsed p0, alphaLOO, loo_val = JS.loo_anchor(xs, cs, mhats, init_sqrt_alpha = sqrt(alphaLOO), numClusters = (K >= 20 ? 20 : -1), info=true )
-				perf = JS.zbar(xs, cs, mhats, ps, lams, (p0, alphaLOO))
+				  @elapsed optp0, alphaLOO, loo_val = JS.loo_anchor(xs, cs, mhats, init_sqrt_alpha = sqrt(alphaLOO), numClusters = (K >= 20 ? 20 : -1), info=true )
+				perf = JS.zbar(xs, cs, mhats, ps, lams, (optp0, alphaLOO))
 				writedlm(f, [dates[ix_start] K d N "OptAnchor" perf t alphaLOO], ',')
 				println("% Improve on Anchor:\t", 1-loo_val/looUnsc_curve[min_indx])
 

@@ -6,9 +6,6 @@
 
 using Distributed
 
-#VG Check you cna dump this?
-#include("rollingHarness.jl")
-
 const spath = ARGS[1]
 const param_path = ARGS[3] # e.g. "AdjSales_NoWeekends"
 const d = parse(Int, ARGS[2])
