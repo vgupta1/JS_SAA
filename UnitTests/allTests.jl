@@ -191,8 +191,63 @@ end #shrunkenSAA
 	
 end #KS Tests
 
+@testset "optimizingAnchors" begin
+	#discrete newsvendors supported 1:d
+	K = 10
+	s = .95
+	d = 10
+	N = 20
+	Random.seed!(8675309)
+
+	#gen an "interesting" distribution of ps still centered at 1/d
+	p0 = ones(d)/d
+	anchor = vcat(1., zeros(d-1))
+	p0 = .5 * p0 + .5 * anchor
+	ps = rand(Dirichlet(ones(d)), floor(Int, K/2))
+	qs = rand(Dirichlet(5 * ones(d)), K-floor(Int, K/2))
+	ps = [ps qs]
+
+	alpha_grid = range(0, stop=50, length=75)
+	lams = ones(K)
+
+	Nhats = rand(Poisson(N), K)
+	mhats = JS.sim_path(ps, Nhats);
+
+	supps =  repeat(collect(1:d), outer=(1, K))
+	cs = JS.getNewsVendorCosts(supps, s, K)
+	xs = JS.genSSAAtrainers(supps, s, K)
+
+	Random.seed!(123456789)
+	optp0, optAlpha, zstar = JS.loo_anchor(xs, cs, mhats, numClusters=5)
+	@test isapprox(optAlpha, 17.100025815457034)
+	@test isapprox(zstar, 87.0)
+	for i = 1:length(cOptAnchor1)
+		@test isapprox(cOptAnchor1[i], optp0[i])
+	end
+
+	optp0, optAlpha, zstar = JS.loo_anchor(xs, cs, mhats, numClusters=-1)
+	@test isapprox(optAlpha, 4.174826098336609)
+	@test isapprox(zstar, 86.6)
+	for i = 1:length(cOptAnchor2)
+		@test isapprox(cOptAnchor2[i], optp0[i])
+	end
+
+	optp0, optAlpha, zstar = JS.opt_oracle_anchor(xs, cs, ps, mhats; numClusters = 5)
+	@test isapprox(optAlpha, 4.466926141845736)
+	@test isapprox(zstar, 4.382226891260787)
+	for i = 1:length(cOptAnchor3)
+		@test isapprox(cOptAnchor3[i], optp0[i])
+	end
+
+	optp0, optAlpha, zstar = JS.opt_oracle_anchor(xs, cs, ps, mhats; numClusters = -1)
+	@test isapprox(optAlpha, 3.542168883777246)
+	@test isapprox(zstar, 4.361044771184344)
+	for i = 1:length(cOptAnchor4)
+		@test isapprox(cOptAnchor4[i], optp0[i])
+	end
 
 
+end #end optimizingAnchors
 
 end #AllTEsts
 
