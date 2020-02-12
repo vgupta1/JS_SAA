@@ -262,6 +262,69 @@ function genMixComp(mhats, numClusters; maxiter=50)
 end
 
 
+#########
+#Functions to optimize anchor among beta distributions
+########
+#perform a naive discretization into d+1 points (d bins)
+#p_i = Prob((i-1)/(d) <= Beta i <= i /d ) i = 1:d
+#output is a d length prob vec
+function formBetaAnchor(theta1, theta2, d)
+	probs = zeros(d)
+	dist = Distributions.Beta(theta1, theta2)
+	for i = 1:d
+		probs[i] = cdf(dist, i/d) - cdf(dist, (i-1)/d)
+	end
+	@assert isprobvec(probs)
+	return probs
+end
+
+#Fits a beta(theta1, theta2) distribution for anchor (discretized)
+#returns alphaLOO, p0, best_loo that optimizes loo error
+function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=false)
+	alphaLOO = 0.
+	theta1LOO = -Inf
+	theta2LOO = -Inf
+	best_val = Inf
+	d = size(mhats, 1)
+	for theta2 in theta2_grid
+		#theta1 = mu/(1-mu) * theta2 
+		#since mu in [0, 1] we search a scaled grid
+		for mu in mu_grid
+			theta1 = mu / (1-mu) * theta2 
+
+			#form p0
+			p0 = formBetaAnchor(theta1, theta2, d)
+
+			for alpha in alpha_grid 
+				out = zLOObar_unsc(xs, cs, mhats, (p0, alpha))
+				if out < best_val			
+					alphaLOO = alpha
+					theta1LOO = theta1
+					theta2LOO = theta2
+					best_val = out
+
+					info && println("alpha\t", alphaLOO, "\t theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
+				end
+			end #over alpha
+		end #over mu  (aka theta1)
+	end#over theta 2
+
+	#compute the p0 one more time (hopefully fast)
+	info && println("theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
+	p0 = formBetaAnchor(theta1LOO, theta2LOO, d)
+	return alphaLOO, p0, best_val
+end	
+
+
+
+
+
+
+
+
+
+
+
 #optimizes choice of anchor and alpha by approx minimizing LOO
 #Heuristic usese particle swarm a 2 starts. 
 #Passing numClusters = -1 makes anchor a linear comb of all phats
