@@ -5,13 +5,6 @@ library(tidyverse)
 library(ggplot2)
 library(tikzDevice)
 
-library(latex2exp)
-library(stringr)
-library(extrafont)
-library(showtext)
-font_add("Times New Roman", "Times New Roman.ttf")
-showtext_auto()
-
 dat = read_csv("../RossmanKaggleData/CleanedData/AdjSales_NoWeekends.csv")
 
 #####
@@ -36,14 +29,10 @@ g <- dat %>% group_by(Store) %>%
   xlab("") + 
   ylab("")
 
-# ggsave("../../DataPoolingTex/Paper_V1/Figures/AvgDailyDemand.pdf", 
-#        g, height = 3, width=3, units="in")
-
 tikz(file = "../../DataPoolingTex/MS_Submission_R2/Paper/Figures/AvgDailyDemand.tex", 
      width = 3, height = 3)
 g
 dev.off()
-
 
 
 dat %>% group_by(Store) %>%
@@ -66,15 +55,10 @@ g2<- dat %>% filter(!is.na(AdjSales),
         axis.ticks.y = element_blank()) + 
   scale_x_continuous(labels=scales::comma)
 
-# ggsave("../../DataPoolingTex/Paper_V1/Figures/DensitiesByStore.pdf", 
-#        g2, height = 3, width=3, units = "in")
-
 tikz(file = "../../DataPoolingTex/MS_Submission_R2/Paper/Figures/DensitiesByStore.tex", 
      width = 3, height = 3)
 g2
 dev.off()
-
-
 
 ########
 #  Try to look at scale adjusted histograms

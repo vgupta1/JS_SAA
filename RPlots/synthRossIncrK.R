@@ -5,10 +5,17 @@ library(ggplot2)
 library(forcats)
 library(stringr)
 library(tikzDevice)
-library(scales) #To properlyf ormat percent axis
+library(scales) #To properly format percent axis
 
-usePoisson = FALSE
-dat <- read_csv(str_c("../Results/PaperPlots/paperv1_syntheticRossman_0.95_", usePoisson, "_200.csv"))
+usePoisson = TRUE
+
+#To be deleted once we find bug
+# dat <- read_csv(str_c("../Results/PaperPlots/paperv1_syntheticRossman_0.95_", usePoisson, "_200.csv"))
+#dat <- read_csv(str_c("../Results/tempSynthetic_syntheticRossman_0.95_true_16.csv"))
+
+
+dat <- read_csv(str_c("../Results/paperv2_syntheticRossman_0.95_", usePoisson, "_200.csv"))
+
 
 #express everything as benefit over SAA
 saa_perf <- dat %>%
@@ -34,17 +41,20 @@ dat.sum <- dat %>% group_by(K, d, N, Method) %>%
     )
 
 dat.sum <- dat.sum %>% mutate(Method = as.factor(Method),
-                              Method = fct_relevel(Method, "OraclePhat", "LOO_avg", "MSE_GM", "Oracle", "LOO_unif", "MSE", "SAA", "FullInfo"), 
+                              Method = fct_relevel(Method, "OptAnchor", "OraclePhat", "LOO_avg", "CV2_avg", "CV5_avg", "CV10_avg", "MSE_GM", "Oracle", "LOO_unif", "CV2_unif", "CV5_unif", "CV10_unif", "MSE", "SAA", "KS", "FullInfo"), 
                                   Labels = fct_recode(Method, `JS-Fixed`= "MSE", 
                                                       `JS-GM` = "MSE_GM",
                                                       `S-SAA-Fixed`="LOO_unif", 
                                                       `S-SAA-GM`="LOO_avg", 
                                                       `Oracle-Fixed`="Oracle", 
-                                                      `Oracle-GM`="OraclePhat") )
+                                                      `Oracle-GM`="OraclePhat", 
+                                                      `CV-5-Fixed`="CV5_unif", 
+                                                      `CV-5-GM`="CV5_avg", 
+                                                      `Opt. Anchor` = "OptAnchor") )
 
 ##By K 
 pd = position_dodge(.2)
-g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo"), N==10) %>%
+g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "KS", "CV2_unif", "CV2_avg", "CV10_unif", "CV10_avg"), N==10) %>%
   ggplot(aes(K, avgRelBenefit, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
   geom_point(position=pd) + geom_line(position=pd) + 
   geom_errorbar(aes(ymin=avgRelBenefit-stdErrRelBenefit, ymax=avgRelBenefit + stdErrRelBenefit), position=pd) + 

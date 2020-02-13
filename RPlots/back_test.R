@@ -7,9 +7,11 @@ library(scales) #To properlyf ormat percent axis
 library(tikzDevice)
 
 ## Load up 3 files of various d's
-dat1 = dat = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__20_AdjSales_NoWeekends_ShuffleWithinCol.csv")
-dat2 = dat = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__50_AdjSales_NoWeekends_ShuffleWithinCol.csv")
-dat3 = dat = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__1000_AdjSales_NoWeekends_ShuffleWithinCol.csv")
+dat1 = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__20_AdjSales_NoWeekends_ShuffleWithinCol.csv")
+dat2 = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__50_AdjSales_NoWeekends_ShuffleWithinCol.csv")
+dat3 = read_csv("../Results/PaperPlots/paperv1_rolling_RossRolling_0.95__1000_AdjSales_NoWeekends_ShuffleWithinCol.csv")
+
+dat1 = read_csv("../Results/paperv2_rolling_RossRolling_0.95__20_AdjSales_NoWeekends_ShuffleWithinCol.csv")
 
 dat = rbind(dat1, dat2, dat3)
 rm(dat1, dat2, dat3)
@@ -73,13 +75,11 @@ saveHistoricalPlot <- function(d_val){
     theme(legend.title=element_blank(), 
           legend.position = c(.5, .9), 
           legend.direction= "horizontal") 
-  # ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/backtest_", d_val, ".pdf"), 
-  #        g, units = "in", height=3.25, width = 3.25 )
 
-  tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/backtest_", d_val, ".tex"), 
-       width = 3, height = 3)
+  # tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/backtest_", d_val, ".tex"), 
+  #      width = 3, height = 3)
   print(g)
-  dev.off()
+  # dev.off()
 }
 
 saveHistoricalPlot(20)
