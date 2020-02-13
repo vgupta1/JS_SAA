@@ -4,12 +4,16 @@
 function nv_quantile(pk, supp_k, s) 
 	if s < 0
 		return supp_k[1]
-	elseif s > 1
-		return supp_k[end]
 	end
-	@assert isprobvec(pk) "Not Probability: $(sum(pk)) $(minimum(pk)) \n $pk"
 
-	supp_k[ quantile(Categorical(pk), s) ] 
+	cdf_ = 0.
+    for i = 1:length(pk)
+        cdf_ += pk[i]
+        if cdf_ >= s
+        	return supp_k[i]
+        end
+    end
+    return supp_k[end]
 end
 
 #returns a d x K matrix of univariate functions 
