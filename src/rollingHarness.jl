@@ -38,7 +38,7 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 
 	#generate all Kmax subproblems upfront and store in memory
 	cs_full = JS.getNewsVendorCosts(supp_full, s, Kmax)
-	xs_full = JS.genSSAAtrainers(supp_full, s, Kmax)
+	xs_full = JS.genSSAAtrainers(supp_full, s)
 	xsKS_full = JS.genKSTrainers(supp_full, s, Kmax, :crossVal)
 
 	lam_full = ones(Kmax)

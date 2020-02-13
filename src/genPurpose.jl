@@ -17,6 +17,18 @@ function shrink(phat_k, p0, alpha, Nhat_k; alphaMax = 1e10)
 	@. alpha * p0 / (Nhat_k + alpha) + Nhat_k * phat_k / (Nhat_k + alpha)
 end
 
+#takes un-noramlized counts
+#assumes out is correctly sized no bounds checking!
+function _shrink!(mhat_k, p0, alpha, Nhat_k, out; alphaMax = 1e10)
+	if Nhat_k == 0 || alpha > alphaMax
+		return p0
+	end
+	for i = 1:length(p0)
+		@inbounds out[i] = alpha * p0[i] / (Nhat_k + alpha) + mhat_k[i] / (Nhat_k + alpha)
+	end
+	out
+end
+
 #need to be careful because some problems may have zero data
 function get_GM_anchor(mhats)
 	Nhats = vec(sum(mhats, dims=1))
@@ -150,9 +162,11 @@ end
 #full-info for scaling/comparison
 #uses the fact that data scale doesn't matter.
 #Only works for the regular xs (which is lame)
-zstar(xs, cs, ps, lams) = zbar(xs, cs, ps, ps, lams, (ps[:, 1], 0.))
+function zstar(xs, cs, ps, lams) 
+	temp_pk = zeros(size(ps, 1))
+	zbar(xs, cs, ps, ps, lams, (ps[:, 1], 0., temp_pk))
+end
 
-#hyper_param = p0, alpha,
 function zLOObar_unsc(xs, cs, mhats, hyper_param)
 	K = size(cs, 2)
 	out = 0.
@@ -163,7 +177,6 @@ function zLOObar_unsc(xs, cs, mhats, hyper_param)
 end
 
 #actually returns N lam_avg * ZCVbar
-#hyper_param = p0, alpha 
 function zCVbar_unsc(xs, cs, cv_data, hyper_param)
 	out = 0.
 	numFolds = length(cv_data)
@@ -186,8 +199,9 @@ function oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
 	jstar = -1
 	best_val = Inf
 	out = zeros(length(alpha_grid))
+	temp_pk = zero(p0) #used as working space
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zbar(xs, cs, mhats, ps, lams, (p0, alpha))
+		out[j] = zbar(xs, cs, mhats, ps, lams, (p0, alpha, temp_pk))
 		if out[j] < best_val
 			jstar = j
 			alphaOR = alpha
@@ -203,8 +217,9 @@ function loo_alpha(xs, cs, mhats, p0, alpha_grid)
 	jstar = -1
 	best_val = Inf
 	out = zeros(length(alpha_grid))
+	temp_pk = zero(p0)  #used a working space
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zLOObar_unsc(xs, cs, mhats, (p0, alpha))
+		out[j] = zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))
 		if out[j] < best_val
 			jstar = j
 			alphaLOO = alpha
@@ -222,8 +237,9 @@ function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	jstar = -1
 	best_val = Inf
 	out = zeros(length(alpha_grid))
+	temp_pk = zero(p0)  #used a working space
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zCVbar_unsc(xs, cs, cv_data, (p0, alpha))
+		out[j] = zCVbar_unsc(xs, cs, cv_data, (p0, alpha, temp_pk))
 		if out[j] < best_val
 			jstar = j
 			alphaCV = alpha
@@ -286,6 +302,7 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 	theta2LOO = -Inf
 	best_val = Inf
 	d = size(mhats, 1)
+	temp_pk = zero(d)
 	for theta2 in theta2_grid
 		#theta1 = mu/(1-mu) * theta2 
 		#since mu in [0, 1] we search a scaled grid
@@ -296,7 +313,7 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 			p0 = formBetaAnchor(theta1, theta2, d)
 
 			for alpha in alpha_grid 
-				out = zLOObar_unsc(xs, cs, mhats, (p0, alpha))
+				out = zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))
 				if out < best_val			
 					alphaLOO = alpha
 					theta1LOO = theta1
@@ -337,10 +354,11 @@ function loo_anchor(xs, cs, mhats; numClusters = 20, init_sqrt_alpha = 1.,
     function f(ys)
         #use softmax to ensure simplex
         weights = soft_max(ys[1:end-1])
-        p0 = vec(mix_comp * weights)        
+        p0 = vec(mix_comp * weights) 
+        temp_pk = zero(p0)       
         alpha = (ys[end])^2
         @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha))            
+        JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))            
     end
     
     #optimize with two starting points and take best one
@@ -387,8 +405,9 @@ function opt_oracle_anchor(xs, cs, ps, mhats; numClusters = 20, init_sqrt_alpha 
         weights = soft_max(ys[1:end-1])
         p0 = vec(mix_comp * weights)        
         alpha = (ys[end])^2
+        temp_pk = zero(p0)
         @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        JS.zbar(xs, cs, mhats, ps, lams, (p0, alpha))
+        JS.zbar(xs, cs, mhats, ps, lams, (p0, alpha, temp_pk))
     end
     
     #optimize with two starting points and take best one

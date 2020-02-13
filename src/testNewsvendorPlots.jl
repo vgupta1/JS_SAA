@@ -22,7 +22,7 @@ function runTest(numRuns, K, outPath; usePoisson=true)
 	lams = ones(K)
 
 	cs = JS.getNewsVendorCosts(repeat(1:d, inner=(1, K)), s, K)
-	xs = JS.genSSAAtrainers(repeat(1:d, inner=(1, K)), s, K)
+	xs = JS.genSSAAtrainers(repeat(1:d, inner=(1, K)), s)
 
 	f = open("$(outPath)_$(K)_$(numRuns).csv", "w")
 

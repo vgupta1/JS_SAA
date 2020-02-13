@@ -18,25 +18,23 @@ end
 
 #returns a d x K matrix of univariate functions 
 function getNewsVendorCosts(supps, s, K)
-	function c_ik(i, k, x, s)
-	    supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
-	end
-	return [x->c_ik(i, k, x, s) for i = 1:size(supps, 1), k = 1:K]
+	return [x-> supps[i, k] > x ? s/(1-s) * (supps[i, k] - x) : (x - supps[i, k])
+				for i =1:size(supps, 1), k =1:K]
 end
 
 #returns an K array of functions which train S-SAA
-#hyperparsms for trainers:  shrinkage anchor and shrinakge amt
-function genSSAAtrainers(supps, s, K)
+#hyperparsms for trainers:  shrinkage anchor and shrinakge amt AND a workign copy
+#hyperparams (p0, alpha, temp_pk) where temp_pk is a pre-allocated array for working
+function genSSAAtrainers(supps, s)
 	#Generic computation of the sth quantile 
-	function x_k(mhat_k, k, s, p0, alpha) 
+	function x_k(mhat_k, k, s, p0, alpha, supps, palpha) 
 	    Nhat_k = sum(mhat_k)
-	    palpha = JS.shrink(mhat_k./Nhat_k, p0, alpha, Nhat_k)
+	    JS._shrink!(mhat_k, p0, alpha, Nhat_k, palpha)
 		nv_quantile(palpha, supps[:, k], s)	    
 	end
 
-	return [(mhat_k, (p0, alpha))-> x_k(mhat_k, k, s, p0, alpha) for k = 1:K]
+	return [(mhat_k, (p0, alpha, palpha))-> x_k(mhat_k, k, s, p0, alpha, supps, palpha) for k = 1:size(supps, 2)]
 end
-
 
 function genKSTrainers(supps, s, K, method)
 	#Computes KS Order quantity assuming Gamma small enough
