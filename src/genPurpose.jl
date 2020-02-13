@@ -152,10 +152,7 @@ end
 #full-info for scaling/comparison
 #uses the fact that data scale doesn't matter.
 #Only works for the regular xs (which is lame)
-function zstar(xs, cs, ps, lams) 
-	temp_pk = zeros(size(ps, 1))
-	zbar(xs, cs, ps, ps, lams, (ps[:, 1], 0., temp_pk))
-end
+zstar(xs, cs, ps, lams) = zbar(xs, cs, ps, ps, lams, (ps[:, 1], 0.))
 
 function zLOObar_unsc(xs, cs, mhats, hyper_param)
 	K = size(cs, 2)
@@ -189,9 +186,8 @@ function oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
 	jstar = -1
 	best_val = Inf
 	out = zeros(length(alpha_grid))
-	temp_pk = zero(p0) #used as working space
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zbar(xs, cs, mhats, ps, lams, (p0, alpha, temp_pk))
+		out[j] = zbar(xs, cs, mhats, ps, lams, (p0, alpha))
 		if out[j] < best_val
 			jstar = j
 			alphaOR = alpha
@@ -207,9 +203,9 @@ function loo_alpha(xs, cs, mhats, p0, alpha_grid)
 	jstar = -1
 	best_val = Inf
 	out = zeros(length(alpha_grid))
-	temp_pk = zero(p0)  #used a working space
+
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))
+		out[j] = zLOObar_unsc(xs, cs, mhats, (p0, alpha))
 		if out[j] < best_val
 			jstar = j
 			alphaLOO = alpha
@@ -227,9 +223,8 @@ function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	jstar = -1
 	best_val = Inf
 	out = zeros(length(alpha_grid))
-	temp_pk = zero(p0)  #used a working space
 	for (j, alpha) in enumerate(alpha_grid)
-		out[j] = zCVbar_unsc(xs, cs, cv_data, (p0, alpha, temp_pk))
+		out[j] = zCVbar_unsc(xs, cs, cv_data, (p0, alpha))
 		if out[j] < best_val
 			jstar = j
 			alphaCV = alpha
@@ -292,7 +287,7 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 	best_val = Inf
 	d = size(mhats, 1)
 	p0 = zeros(d)
-	temp_pk = zero(p0)
+
 	for theta2 in theta2_grid
 		#theta1 = mu/(1-mu) * theta2 
 		#since mu in [0, 1] we search a scaled grid
@@ -303,7 +298,7 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 			formBetaAnchor!(theta1, theta2, d, p0)
 
 			for alpha in alpha_grid 
-				out = zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))
+				out = zLOObar_unsc(xs, cs, mhats, (p0, alpha))
 				if out < best_val			
 					alphaLOO = alpha
 					theta1LOO = theta1
@@ -322,6 +317,44 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 	return alphaLOO, p0, best_val
 end	
 
+#Fits a beta(theta1, theta2) distribution for anchor (discretized)
+#returns alphaOR, p0, perf that optimizes oracle error
+function oracle_betaAnchor(xs, cs, mhats, ps, lams, alpha_grid, theta2_grid, mu_grid; info=false)
+	alphaOR = 0.
+	theta1OR = -Inf
+	theta2OR = -Inf
+	best_val = Inf
+	d = size(mhats, 1)
+	p0 = zeros(d)
+
+	for theta2 in theta2_grid
+		#theta1 = mu/(1-mu) * theta2 
+		#since mu in [0, 1] we search a scaled grid
+		for mu in mu_grid
+			theta1 = mu / (1-mu) * theta2 
+
+			#form p0
+			formBetaAnchor!(theta1, theta2, d, p0)
+
+			for alpha in alpha_grid 
+				out = zbar(xs, cs, mhats, ps, lams, (p0, alpha))
+				if out < best_val			
+					alphaOR = alpha
+					theta1OR = theta1
+					theta2OR = theta2
+					best_val = out
+
+					info && println("alpha\t", alphaOR, "\t theta1Loo:\t", theta1OR, "\t theta2OR:\t", theta2OR, "\tMean:\t", theta1OR/(theta1OR + theta2OR))
+				end
+			end #over alpha
+		end #over mu  (aka theta1)
+	end#over theta 2
+
+	#compute the p0 one more time (hopefully fast)
+	info && println("theta1Loo:\t", theta1OR, "\t theta2OR:\t", theta2OR, "\tMean:\t", theta1OR/(theta1OR + theta2OR))
+	formBetaAnchor!(theta1OR, theta2OR, d, p0)
+	return alphaOR, p0, best_val
+end	
 
 
 
@@ -345,10 +378,9 @@ function loo_anchor(xs, cs, mhats; numClusters = 20, init_sqrt_alpha = 1.,
         #use softmax to ensure simplex
         weights = soft_max(ys[1:end-1])
         p0 = vec(mix_comp * weights) 
-        temp_pk = zero(p0)       
         alpha = (ys[end])^2
         @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))            
+        JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha))            
     end
     
     #optimize with two starting points and take best one
@@ -395,9 +427,8 @@ function opt_oracle_anchor(xs, cs, ps, mhats; numClusters = 20, init_sqrt_alpha 
         weights = soft_max(ys[1:end-1])
         p0 = vec(mix_comp * weights)        
         alpha = (ys[end])^2
-        temp_pk = zero(p0)
         @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        JS.zbar(xs, cs, mhats, ps, lams, (p0, alpha, temp_pk))
+        JS.zbar(xs, cs, mhats, ps, lams, (p0, alpha))
     end
     
     #optimize with two starting points and take best one

@@ -8,7 +8,7 @@ include("consts.jl")
 @testset "allTests" begin 
 
 #Tests shrink/crossval other simpler helpers
-@testset "Vector Functions Bernolli Newsvendor" begin
+@testset "Vector Functions Bernoulli Newsvendor" begin
 	Random.seed!(8675309)
 	K = 100
 	ps = rand(K)
@@ -117,12 +117,11 @@ end
 	xs = JS.genSSAAtrainers(supps, s)
 
 	#First some pointwise tests
-	temp_pk = zeros(d)
-	@test isapprox(JS.z_k(xs[1], cs[:, 1], mhats[:, 1], ps[:, 1], 1, 1, (p0, 1, temp_pk)), 3.2530462468808903)
-	@test isapprox(JS.zbar(xs, cs, mhats, ps, lams, (p0, 1, temp_pk)), 4.428156384118435)
+	@test isapprox(JS.z_k(xs[1], cs[:, 1], mhats[:, 1], ps[:, 1], 1, 1, (p0, 1)), 3.2530462468808903)
+	@test isapprox(JS.zbar(xs, cs, mhats, ps, lams, (p0, 1)), 4.428156384118435)
 	@test isapprox(JS.zstar(xs, cs, ps, lams), 4.361044771184344)
 
-	@test isapprox(JS.zLOO_k_unsc(xs[1], cs[:, 1], mhats[:, 1], (p0, 1, temp_pk)), 49.0 )
+	@test isapprox(JS.zLOO_k_unsc(xs[1], cs[:, 1], mhats[:, 1], (p0, 1)), 49.0 )
 
 	#Now check whole curve
 	alphaOR, jstar, oracle_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
@@ -249,6 +248,52 @@ end #KS Tests
 
 
 end #end optimizingAnchors
+
+@testset "betaAnchors" begin
+	#discrete newsvendors supported 1:d
+	K = 10
+	s = .95
+	d = 10
+	N = 20
+	Random.seed!(8675309)
+
+	#gen an "interesting" distribution of ps still centered at 1/d
+	p0 = ones(d)/d
+	anchor = vcat(1., zeros(d-1))
+	p0 = .5 * p0 + .5 * anchor
+	ps = rand(Dirichlet(ones(d)), floor(Int, K/2))
+	qs = rand(Dirichlet(5 * ones(d)), K-floor(Int, K/2))
+	ps = [ps qs]
+
+	alpha_grid = range(0, stop=50, length=75)
+	lams = ones(K)
+
+	Nhats = rand(Poisson(N), K)
+	mhats = JS.sim_path(ps, Nhats);
+
+	supps =  repeat(collect(1:d), outer=(1, K))
+	cs = JS.getNewsVendorCosts(supps, s, K)
+	xs = JS.genSSAAtrainers(supps, s)
+
+	theta2_grid = range(1e-6, stop=3, length=5)
+	mu_grid = range(1e-6, stop=1, length=5)
+	alphaLOO, p0LOO, zLOO = JS.loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid)
+	@test isapprox(alphaLOO, 10.81081081081081)
+	@test isapprox(zLOO, 87.0)
+
+	for i = 1:length(p0LOO)
+		@test isapprox(p0LOO[i], cBetaAnchor[i])
+	end
+
+	alphaOR, p0OR, zOR = JS.oracle_betaAnchor(xs, cs, mhats, ps, lams, alpha_grid, theta2_grid, mu_grid)
+	@test isapprox(alphaOR, 1.3513513513513513)
+	@test isapprox(zOR, 4.361044771184344)
+	for i = 1:length(p0OR)
+		@test isapprox(p0OR[i], cBetaAnchorOR[i])
+	end
+end #end betaAnchors
+
+
 
 end #AllTEsts
 

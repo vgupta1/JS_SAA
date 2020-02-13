@@ -23,8 +23,7 @@ function getNewsVendorCosts(supps, s, K)
 end
 
 #returns an K array of functions which train S-SAA
-#hyperparsms for trainers:  shrinkage anchor and shrinakge amt AND a workign copy
-#hyperparams (p0, alpha, temp_pk) where temp_pk is a pre-allocated array for working
+#hyperparams = (p0, alpha) 
 function genSSAAtrainers(supps, s)
 	#Generic computation of the sth quantile 
 	function x_k(mhat_k, k, s, p0, alpha, supps, palpha) 
@@ -32,8 +31,8 @@ function genSSAAtrainers(supps, s)
 	    JS._shrink!(mhat_k, p0, alpha, Nhat_k, palpha)
 		nv_quantile(palpha, supps[:, k], s)	    
 	end
-
-	return [(mhat_k, (p0, alpha, palpha))-> x_k(mhat_k, k, s, p0, alpha, supps, palpha) for k = 1:size(supps, 2)]
+	in_place_pk = zeros(size(supps, 1)) #allocate the shared workspace once here
+	return [(mhat_k, (p0, alpha))-> x_k(mhat_k, k, s, p0, alpha, supps, in_place_pk) for k = 1:size(supps, 2)]
 end
 
 function genKSTrainers(supps, s, K, method)
