@@ -121,26 +121,16 @@ function z_k(x_k, c_k, mhat_k, ps_k, lam_k, lamavg, hyper_param)
 end
 
 #actually returns zLOO_k * N * lamavg
-#hyper_param = p0, alpha
 function zLOO_k_unsc(x_k, c_k, mhat_k, hyper_param)
-	out = 0.
-	mhatloo = mhat_k[:] #copy data
 	#only compute for terms where mhat_k[i] > 0
-	#compute a base solution to resuse as necessary
-	x_base = x_k(mhat_k, hyper_param)
+	out = 0.
 	for i = 1:length(mhat_k)
-		#correct previous toggle
-		if i > 1 && mhat_k[i - 1] > 0
-			mhatloo[i - 1] += 1
-		end
-
 		if mhat_k[i] > 0
-			mhatloo[i] -= 1	
-		    x = x_k(mhatloo, hyper_param)
-		else 
-			x = x_base
+			mhat_k[i] -= 1	
+		    x = x_k(mhat_k, hyper_param)
+		    mhat_k[i] += 1
+		    out += mhat_k[i] * c_k[i](x)
 		end
-		out += mhat_k[i] * c_k[i](x)
 	end
 	out
 end
@@ -171,7 +161,7 @@ function zLOObar_unsc(xs, cs, mhats, hyper_param)
 	K = size(cs, 2)
 	out = 0.
 	for k = 1:K
-		out += zLOO_k_unsc(xs[k], cs[:, k], mhats[:, k], hyper_param)
+		@inbounds @views out += zLOO_k_unsc(xs[k], cs[:, k], mhats[:, k], hyper_param)
 	end
 	out /K
 end
@@ -283,15 +273,14 @@ end
 ########
 #perform a naive discretization into d+1 points (d bins)
 #p_i = Prob((i-1)/(d) <= Beta i <= i /d ) i = 1:d
-#output is a d length prob vec
-function formBetaAnchor(theta1, theta2, d)
-	probs = zeros(d)
+#assumes p0_out is of size d
+function formBetaAnchor!(theta1, theta2, d, p0_out)
+	@assert length(p0_out) == d "p0_out must be of length $d"
 	dist = Distributions.Beta(theta1, theta2)
 	for i = 1:d
-		probs[i] = cdf(dist, i/d) - cdf(dist, (i-1)/d)
+		p0_out[i] = cdf(dist, i/d) - cdf(dist, (i-1)/d)
 	end
-	@assert isprobvec(probs)
-	return probs
+	p0_out
 end
 
 #Fits a beta(theta1, theta2) distribution for anchor (discretized)
@@ -302,7 +291,8 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 	theta2LOO = -Inf
 	best_val = Inf
 	d = size(mhats, 1)
-	temp_pk = zero(d)
+	p0 = zeros(d)
+	temp_pk = zero(p0)
 	for theta2 in theta2_grid
 		#theta1 = mu/(1-mu) * theta2 
 		#since mu in [0, 1] we search a scaled grid
@@ -310,7 +300,7 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 			theta1 = mu / (1-mu) * theta2 
 
 			#form p0
-			p0 = formBetaAnchor(theta1, theta2, d)
+			formBetaAnchor!(theta1, theta2, d, p0)
 
 			for alpha in alpha_grid 
 				out = zLOObar_unsc(xs, cs, mhats, (p0, alpha, temp_pk))
@@ -328,7 +318,7 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 
 	#compute the p0 one more time (hopefully fast)
 	info && println("theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
-	p0 = formBetaAnchor(theta1LOO, theta2LOO, d)
+	formBetaAnchor!(theta1LOO, theta2LOO, d, p0)
 	return alphaLOO, p0, best_val
 end	
 
