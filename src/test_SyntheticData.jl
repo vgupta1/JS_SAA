@@ -8,7 +8,6 @@
 	#ARGs[2] partial path for output.  
 	#ARGS[3] d  
 	#ARGS[4] bool for using the poisson amount of data assumption.
-
 using Distributed
 
 const numRuns = parse(Int, ARGS[1])

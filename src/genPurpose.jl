@@ -304,15 +304,13 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 					theta1LOO = theta1
 					theta2LOO = theta2
 					best_val = out
-
-					info && println("alpha\t", alphaLOO, "\t theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
 				end
 			end #over alpha
 		end #over mu  (aka theta1)
 	end#over theta 2
+	info && println("theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
 
 	#compute the p0 one more time (hopefully fast)
-	info && println("theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
 	formBetaAnchor!(theta1LOO, theta2LOO, d, p0)
 	return alphaLOO, p0, best_val
 end	
