@@ -114,14 +114,15 @@ end
 
 	supps =  repeat(collect(1:d), outer=(1, K))
 	cs = JS.getNewsVendorCosts(supps, s, K)
-	xs = JS.genSSAAtrainers(supps, s, K)
+	xs = JS.genSSAAtrainers(supps, s)
 
 	#First some pointwise tests
-	@test isapprox(JS.z_k(xs[1], cs[:, 1], mhats[:, 1], ps[:, 1], 1, 1, (p0, 1)), 3.2530462468808903)
-	@test isapprox(JS.zbar(xs, cs, mhats, ps, lams, (p0, 1)), 4.428156384118435)
+	temp_pk = zeros(d)
+	@test isapprox(JS.z_k(xs[1], cs[:, 1], mhats[:, 1], ps[:, 1], 1, 1, (p0, 1, temp_pk)), 3.2530462468808903)
+	@test isapprox(JS.zbar(xs, cs, mhats, ps, lams, (p0, 1, temp_pk)), 4.428156384118435)
 	@test isapprox(JS.zstar(xs, cs, ps, lams), 4.361044771184344)
 
-	@test isapprox(JS.zLOO_k_unsc(xs[1], cs[:, 1], mhats[:, 1], (p0, 1)), 49.0 )
+	@test isapprox(JS.zLOO_k_unsc(xs[1], cs[:, 1], mhats[:, 1], (p0, 1, temp_pk)), 49.0 )
 
 	#Now check whole curve
 	alphaOR, jstar, oracle_curve = JS.oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
@@ -215,7 +216,7 @@ end #KS Tests
 
 	supps =  repeat(collect(1:d), outer=(1, K))
 	cs = JS.getNewsVendorCosts(supps, s, K)
-	xs = JS.genSSAAtrainers(supps, s, K)
+	xs = JS.genSSAAtrainers(supps, s)
 
 	Random.seed!(123456789)
 	optp0, optAlpha, zstar = JS.loo_anchor(xs, cs, mhats, numClusters=5)
