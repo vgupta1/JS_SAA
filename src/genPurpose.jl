@@ -234,33 +234,6 @@ function cv_alpha(xs, cs, mhats, p0, alpha_grid, numFolds)
 	return alphaCV, jstar, out
 end	
 
-#maps ys to simplex somewhat safely
-function soft_max(ys)
-	ymax = maximum(ys)
-	weights = exp.(ys .- ymax)
-	weights /= sum(weights)
-	@assert isprobvec(weights) "soft_max fail: \n $ys \n $weights"
-
-	weights
-end
-
-###########
-###########
-#  Some functions to optimize the anchors
-function genMixComp(mhats, numClusters; maxiter=50)
-    #First cluster to find points.
-    phats = mhats ./ sum(mhats, dims=1)
-    if numClusters < 0
-    	mix_comp = phats
-    	numClusters = size(phats, 2)
-    else
-	    cluster_res = kmeans(phats, numClusters; maxiter=maxiter)
-    	mix_comp = cluster_res.centers       
-	end    
-
-    #add the grandmean for ease
-    hcat(mix_comp, JS.get_GM_anchor(mhats))
-end
 
 
 #########
@@ -308,6 +281,16 @@ function loo_betaAnchor(xs, cs, mhats, alpha_grid, theta2_grid, mu_grid; info=fa
 			end #over alpha
 		end #over mu  (aka theta1)
 	end#over theta 2
+
+    #confirm it does better than mm
+    theta1, theta2 = mm_beta_param(get_GM_anchor(mhats))
+   	formBetaAnchor!(theta1, theta2, d, p0)
+   	alpha, jstar, curve = loo_alpha(xs, cs, mhats, p0, alpha_grid)
+   	out = curve[jstar]
+   	if out < best_val
+   		return alpha, p0, out
+   	end
+
 	info && println("theta1Loo:\t", theta1LOO, "\t theta2LOO:\t", theta2LOO, "\tMean:\t", theta1LOO/(theta1LOO + theta2LOO))
 
 	#compute the p0 one more time (hopefully fast)
@@ -348,116 +331,69 @@ function oracle_betaAnchor(xs, cs, mhats, ps, lams, alpha_grid, theta2_grid, mu_
 		end #over mu  (aka theta1)
 	end#over theta 2
 
-	#compute the p0 one more time (hopefully fast)
+    #confirm it does better than mm
+    theta1, theta2 = mm_beta_param(get_GM_anchor(mhats))
+   	formBetaAnchor!(theta1, theta2, d, p0)
+   	alpha, jstar, curve = oracle_alpha(xs, cs, mhats, ps, lams, p0, alpha_grid)
+   	out = curve[jstar]
+   	if out < best_val
+   		return alpha, p0, out
+   	end
+
+	#compute the p0
 	info && println("theta1Loo:\t", theta1OR, "\t theta2OR:\t", theta2OR, "\tMean:\t", theta1OR/(theta1OR + theta2OR))
 	formBetaAnchor!(theta1OR, theta2OR, d, p0)
 	return alphaOR, p0, best_val
 end	
 
 
+#compute the beta dist param by mm to mean and variance
+function mm_beta_param(pGM)
+	supp = range(0, stop=1, length=length(pGM))
+	mu = dot(pGM, supp)
+	var = dot(pGM, supp.^2) - mu^2
+	if var > mu * (1 - mu)
+		#fail silently
+		return (1., 1.)
+	end
+	v = mu * (1 - mu) / var
+	return mu * v, (1 - mu) * v
+end
 
 
+#Fits a beta(theta1, theta2) distribution for anchor (discretized)
+#returns alphaLOO, p0, best_loo that optimizes loo error
+#uses a black-box optimization routine
+function loo_betaAnchor(xs, cs, mhats; info=false, time_limit = 45, iterations=1000, 
+						init_alpha=1., init_theta1= 1., init_theta2=1.)
 
+	d = size(mhats, 1)
+	p0 = zeros(d) #used as shared storage
 
+	#ys = [alpha, theta1, theta2]
+	function f(ys)
+		alpha = ys[1]^2
+		theta1 = ys[2]^2
+		theta2 = ys[3]^2
+		#form p0
+		formBetaAnchor!(theta1, theta2, d, p0)
+		zLOObar_unsc(xs, cs, mhats, (p0, alpha))
+	end
+	ys1 = [init_alpha, init_theta1, init_theta2]
+	info && println("Initial Value:\t", f(ys1))
+    t= @elapsed results = optimize(f, ys1, 
+                    ParticleSwarm(n_particles=40), 
+                    Optim.Options(time_limit=time_limit, iterations=iterations))
 
+    z1 = Optim.minimum(results)
+    ystar = Optim.minimizer(results)
+    info && println("Theta1:\t", ystar[2]^2, "\t Theta2:\t", ystar[3]^2, "\t mu:\t", (ystar[2]^2)/(ystar[2]^2 + ystar[3]^2))
+	info && println("Time:\t", t, "\tTime Per Iteration:\t", t/iterations(results))
+	formBetaAnchor!(ystar[2]^2, ystar[3]^2, d, p0)
 
+	return ystar[1]^2, p0, z1
+end	
 
-
-#optimizes choice of anchor and alpha by approx minimizing LOO
-#Heuristic usese particle swarm a 2 starts. 
-#Passing numClusters = -1 makes anchor a linear comb of all phats
-#return anchor, alpha, loo val
-function loo_anchor(xs, cs, mhats; numClusters = 20, init_sqrt_alpha = 1.,
-                    time_limit = 60., iterations=1000, store_trace=false, info=false)
-	mix_comp = genMixComp(mhats, numClusters)
-
-    #write aux function 
-    function f(ys)
-        #use softmax to ensure simplex
-        weights = soft_max(ys[1:end-1])
-        p0 = vec(mix_comp * weights) 
-        alpha = (ys[end])^2
-        @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        JS.zLOObar_unsc(xs, cs, mhats, (p0, alpha))            
-    end
-    
-    #optimize with two starting points and take best one
-    x01 = [ones(size(mix_comp, 2)); init_sqrt_alpha]
-    init_val1 = f(x01)
-    @time res1 = optimize(f, x01, 
-                    ParticleSwarm(n_particles=10), 
-                    Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
-    z1 = Optim.minimum(res1)
-    
-    x02 = [zeros(size(mix_comp, 2) - 1); 1.; init_sqrt_alpha]
-    init_val2 = f(x02)
-    @time res2 = optimize(f, x02, 
-                    ParticleSwarm(n_particles=10), 
-                    Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
-    z2 = Optim.minimum(res2)
-    
-    if z1 < z2    
-        xstar = Optim.minimizer(res1)
-        zstar = z1
-    else
-        xstar = Optim.minimizer(res2)
-        zstar = z2
-    end
-    info && println("Perc: Improv over LOO GM:\t", 1- zstar / init_val2)
-    
-    weights = soft_max(xstar[1:end-1])
-    p0 = vec(mix_comp * weights)       
-    alpha = (xstar[end])^2
-    p0, alpha, zstar
-end    
-
-#optimizes choice of anchor and alpha by approx minimizing oracle criteria
-#Heuristic usese particle swarm a 2 starts. 
-#Passing numClusters = -1 makes anchor a linear comb of all phats
-#return anchor, alpha, loo val
-function opt_oracle_anchor(xs, cs, ps, mhats; numClusters = 20, init_sqrt_alpha = 1.,
-                    time_limit = 60., iterations=1000, store_trace=false, info=false)
-	mix_comp = genMixComp(mhats, numClusters)
-	lams = ones(length(xs))
-    #write aux function 
-    function f(ys)
-        #use softmax to ensure simplex
-        weights = soft_max(ys[1:end-1])
-        p0 = vec(mix_comp * weights)        
-        alpha = (ys[end])^2
-        @assert isprobvec(p0) "P0 Failed here: \n $weights \n $ys[1:end-1]"
-        JS.zbar(xs, cs, mhats, ps, lams, (p0, alpha))
-    end
-    
-    #optimize with two starting points and take best one
-    x01 = [ones(size(mix_comp, 2)); init_sqrt_alpha]
-    init_val1 = f(x01)
-    @time res1 = optimize(f, x01, 
-                    ParticleSwarm(n_particles=10), 
-                    Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
-    z1 = Optim.minimum(res1)
-    
-    x02 = [zeros(size(mix_comp, 2) - 1); 1.; init_sqrt_alpha]
-    init_val2 = f(x02)
-    @time res2 = optimize(f, x02, 
-                    ParticleSwarm(n_particles=10), 
-                    Optim.Options(time_limit=time_limit, iterations=iterations, store_trace=store_trace))
-    z2 = Optim.minimum(res2)
-    
-    if z1 < z2    
-        xstar = Optim.minimizer(res1)
-        zstar = z1
-    else
-        xstar = Optim.minimizer(res2)
-        zstar = z2
-    end
-    info && println("Perc: Improv over LOO GM:\t", 1- zstar / init_val2)
-    
-    weights = soft_max(xstar[1:end-1])
-    p0 = vec(mix_comp * weights)       
-    alpha = (xstar[end])^2
-    p0, alpha, zstar
-end  
 
 #### Helper function for binning data
 #dat_vec is vector of actual realizations

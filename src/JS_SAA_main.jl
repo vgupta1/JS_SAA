@@ -7,6 +7,7 @@ using Distributions, StatsBase, LinearAlgebra, Random
 using Optim, Clustering
 
 include("genPurpose.jl")
+include("deprecated.jl")
 include("newsvendorfactory.jl")
 include("babyNewsvendor.jl")
 

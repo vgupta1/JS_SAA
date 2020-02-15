@@ -2,7 +2,7 @@
 #passed arguments 
 	#ARGS[1] is partial path for output.  
 	#ARGS[2] is d must be one of 20, 50, 1000
-	#ARGS[3] specifies the data stub:  one of AdjSales_NoWeekends, AdjSales_NoWeekends_RowShuffle, etc.
+	#ARGS[3] specifies the data stub:  AdjSales_NoWeekends_ShuffleWithinCol
 
 using Distributed
 
