@@ -112,6 +112,11 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				  @elapsed perf_SAA = JS.zbar(xs, cs, mhats, ps, lams, (p0, 0.))
 				writedlm(f, [dates[ix_start] K d N "SAA" perf_SAA t 0.0], ',')
 
+				if onlySAA
+					continue
+				end
+				
+
 				#KS Robust value
 				t = 
 				  @elapsed perf_KS = JS.zbar(xsKS, cs, mhats, ps, lams, (Gamma_grid, 5))
