@@ -31,5 +31,5 @@ binned_data = tdata[2:end, 2:end]  #drop column header = stores, drop row header
 dates= tdata[2:end, 1] #keep track of dates for fun
 
 #currently run single-threaded for ease
-@elapsed rollingTest(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
+@time rollingTest(K_grid, supp_full, ps_full, binned_data, dates, outPath, N_grid, s, onlySAA=false, numTestDays=10)
 
