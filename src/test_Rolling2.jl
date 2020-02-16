@@ -93,23 +93,22 @@ file40_b = fetch(file40_b)
 time_stamp = (time_ns() - start_time) * 1e-9
 
 ##read everyone in, throw away a line
-function appendData!(file_path, data)
-	data_t = readdlm(file_path, ',', skipstart=1)
-	data = vcat(data, data_t)
-end
+data_10_aa, header = readdlm(file10_aa, ',', header=true)
+data_10_ab, header = readdlm(file10_ab, ',', header=true)
+data_10_ba, header = readdlm(file10_ba, ',', header=true)
+data_10_bb, header = readdlm(file10_bb, ',', header=true)
 
-data, header = readdlm(file10_aa, ',', header=true)
-appendData!(file10_ab, data)
-appendData!(file10_ba, data)
-appendData!(file10_bb, data)
+data_20_aa, header = readdlm(file20_aa, ',', header=true)
+data_20_ab, header = readdlm(file20_ab, ',', header=true)
+data_20_ba, header = readdlm(file20_ba, ',', header=true)
+data_20_bb, header = readdlm(file20_bb, ',', header=true)
 
-appendData!(file20_aa, data)
-appendData!(file20_ab, data)
-appendData!(file20_ba, data)
-appendData!(file20_bb, data)
+data_40_a, header = readdlm(file40_a, ',', header=true)
+data_40_b, header = readdlm(file40_b, ',', header=true)
 
-appendData!(file40_a, data)
-appendData!(file40_b, data)
+data = reduce(vcat, (data_10_aa, data_10_ab, data_10_ba, data_10_bb, 
+					 data_20_aa, data_20_ab, data_20_ba, data_20_bb, 
+					 data_40_a, data_40_b) )
 
 f = open("$(outPath).csv", "w")
 writedlm(f, header, ',')
