@@ -28,7 +28,7 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 	alpha_grid = range(0., stop=alpha_max, length=alpha_len)
 	Gamma_grid = range(0, stop = (1-s), length=51)
 	theta2_grid = range(1e-6, stop=3, length=20)
-	mu_grid = range(1e-6, stop=1, length=11)
+	mu_grid = range(1e-6, stop=1, length=20)
 
 	#set up output file
 	f = open("$(outPath).csv", "w")

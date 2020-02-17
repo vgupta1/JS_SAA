@@ -1,4 +1,4 @@
-#julia -p 10 -L rollingHarness.jl test_Rolling.jl outPathStub d datastub
+#julia -p 10 -L rollingHarness.jl test_Rolling2.jl outPathStub d
 #passed arguments 
 	#ARGS[1] is partial path for output.  
 	#ARGS[2] is d must be one of 20, 50, 1000
