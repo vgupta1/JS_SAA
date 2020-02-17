@@ -204,7 +204,7 @@ function rollingTest(K_grid, supp_full, ps_full, binned_data_full, dates, outPat
 				true_perf = JS.zbar(xs, cs, mhats, ps, lams, (p0LOO, alphaLOO))
 				writedlm(f, [dates[ix_start] K d N "BetaOptLOO" true_perf t alphaLOO], ',')
 				println()
-				println("----Beta %Improv LOO\t", 1- loo_val/temp_GM, "------")
+				println("----Beta %Improv LOO\t", 1- loo_val/tempGM, "------")
 				println()
 
 				t = 
