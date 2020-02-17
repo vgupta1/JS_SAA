@@ -35,46 +35,46 @@ start_time = time_ns()
 file10_aa = @spawn rollingTest(K_grid[1:2:end], supp_full, ps_full, 
 					 binned_data[1:half_pts, :], dates[1:half_pts], 
 					 "$(outPath)_thread_10_a_a", 
-					 [10], s, onlySAA=true)
+					 [10], s)
 file10_ab = @spawn rollingTest(K_grid[1:2:end], supp_full, ps_full, 
 					 binned_data[(half_pts + 1):end, :], dates[(half_pts + 1):end], 
 					 "$(outPath)_thread_10_a_b", 
-					 [10], s, onlySAA=true)
+					 [10], s)
 file10_ba = @spawn rollingTest(K_grid[2:2:end], supp_full, ps_full, 
 					 binned_data[1:half_pts, :], dates[1:half_pts], 
 					 "$(outPath)_thread_10_b_a", 
-					 [10], s, onlySAA=true)
+					 [10], s)
 file10_bb = @spawn rollingTest(K_grid[2:2:end], supp_full, ps_full, 
 					 binned_data[(half_pts + 1):end, :], dates[(half_pts + 1):end], 
 					 "$(outPath)_thread_10_b_b", 
-					 [10], s, onlySAA=true)
+					 [10], s)
 
 file20_aa = @spawn rollingTest(K_grid[1:2:end], supp_full, ps_full, 
 					 binned_data[1:half_pts, :], dates[1:half_pts], 
 					 "$(outPath)_thread_20_a_a", 
-					 [20], s, onlySAA=true)
+					 [20], s)
 file20_ab = @spawn rollingTest(K_grid[1:2:end], supp_full, ps_full, 
 					 binned_data[(half_pts + 1):end, :], dates[(half_pts + 1):end], 
 					 "$(outPath)_thread_20_a_b", 
-					 [20], s, onlySAA=true)
+					 [20], s)
 file20_ba = @spawn rollingTest(K_grid[2:2:end], supp_full, ps_full, 
 					 binned_data[1:half_pts, :], dates[1:half_pts], 
 					 "$(outPath)_thread_20_b_a", 
-					 [20], s, onlySAA=true)
+					 [20], s)
 file20_bb = @spawn rollingTest(K_grid[2:2:end], supp_full, ps_full, 
 					 binned_data[(half_pts + 1):end, :], dates[(half_pts + 1):end], 
 					 "$(outPath)_thread_20_b_b", 
-					[20], s, onlySAA=true)
+					[20], s)
 
 #N = 40, just split K = 2 processors
 file40_a = @spawn rollingTest(K_grid[1:2:end], supp_full, ps_full, 
 					 binned_data, dates, 
 					 "$(outPath)_thread_40_a", 
-					[40], s, onlySAA=true)
+					[40], s)
 file40_b = @spawn rollingTest(K_grid[2:2:end], supp_full, ps_full, 
 					 binned_data, dates, 
 					 "$(outPath)_thread_40_b", 
-					[40], s, onlySAA=true)
+					[40], s)
 
 # ######
 file10_aa = fetch(file10_aa)
