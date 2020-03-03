@@ -12,7 +12,7 @@ usePoisson = TRUE
 #To be deleted once we find bug
 # dat <- read_csv(str_c("../Results/PaperPlots/paperv1_syntheticRossman_0.95_", usePoisson, "_200.csv"))
 #dat <- read_csv(str_c("../Results/tempSynthetic_syntheticRossman_0.95_true_16.csv"))
-
+#dat <- read_csv(str_c("../Results/tempSynth_syntheticRossman_0.95_true_8.csv"))
 
 dat <- read_csv(str_c("../Results/paperv2_syntheticRossman_0.95_", usePoisson, "_200.csv"))
 
@@ -40,6 +40,8 @@ dat.sum <- dat %>% group_by(K, d, N, Method) %>%
               stdErrRelBenefit = sdRelBenefit/ sqrt(n())
     )
 
+
+#### VG FIX THE METHODS HERE AFTER IT RUNS!!!!!
 dat.sum <- dat.sum %>% mutate(Method = as.factor(Method),
                               Method = fct_relevel(Method, "OptAnchor", "OraclePhat", "LOO_avg", "CV2_avg", "CV5_avg", "CV10_avg", "MSE_GM", "Oracle", "LOO_unif", "CV2_unif", "CV5_unif", "CV10_unif", "MSE", "SAA", "KS", "FullInfo"), 
                                   Labels = fct_recode(Method, `JS-Fixed`= "MSE", 
@@ -54,7 +56,7 @@ dat.sum <- dat.sum %>% mutate(Method = as.factor(Method),
 
 ##By K 
 pd = position_dodge(.2)
-g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "KS", "CV2_unif", "CV2_avg", "CV10_unif", "CV10_avg"), N==10) %>%
+g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "CV2_unif", "CV2_avg", "CV10_unif", "CV10_avg"), N==10) %>%
   ggplot(aes(K, avgRelBenefit, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
   geom_point(position=pd) + geom_line(position=pd) + 
   geom_errorbar(aes(ymin=avgRelBenefit-stdErrRelBenefit, ymax=avgRelBenefit + stdErrRelBenefit), position=pd) + 
@@ -67,10 +69,6 @@ g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "KS", "CV2_unif", "CV2
     ylab("Benefit over SAA (\\%)") + 
   guides(color=guide_legend(nrow=3,byrow=TRUE))
 
-
-##Save it down.
-# ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synthData", usePoisson, ".pdf"), 
-#        g, width=3.25, height=3.25, units="in")
 
 tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/synthData", usePoisson, ".tex"), 
      width = 3.2, height = 3.2)
@@ -91,13 +89,19 @@ g <- dat.sum %>% filter(Method != "FullInfo", N==10) %>%
   guides(color=guide_legend(ncol=2,byrow=TRUE))
 g
 
-##Save it down.
-# ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synDataStdDev_", usePoisson, ".pdf"), 
-#        g, width=3.25, height=3.25, units="in")
 tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/synDataStdDev_", usePoisson, ".tex"), 
      width = 3.2, height = 3.2)
 g
 dev.off()
+
+
+##### Make a big table for the appendix of all the methods
+
+
+
+
+
+
 
 
 #####
