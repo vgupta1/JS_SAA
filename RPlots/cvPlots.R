@@ -5,9 +5,9 @@ library(stringr)
 library(tikzDevice)
 library(scales) #To properly format percent axis
 
-usePoisson = FALSE
+usePoisson = TRUE
 
-dat = read_csv(str_c("../src/tempCV_cv_synthetic_0.95_", usePoisson, "_8.csv"))
+dat = read_csv(str_c("../Results/paperv2__cv_synthetic_0.95_", usePoisson, "_200.csv"))
 
 #split and relabel everybody for ease
 dat <- dat %>% mutate(Method = as.factor(Method), 
@@ -78,9 +78,11 @@ genPlot<- function(dat)
     geom_line() + 
     geom_point(aes(shape=Folds)) + 
     theme_minimal(base_size = 8) + 
-    scale_x_log10() + scale_y_continuous(labels=scales::percent) + 
+    scale_x_log10() + 
+    scale_y_continuous(labels=function(x){percent(x, suffix="\\%", accuracy = .1)}) + 
     theme(legend.text=element_text(size=6),
-          legend.title=element_blank()) +
+          legend.title=element_blank(), 
+          legend.position=c(.8, .2)) +
     ylab("Relative SubOpt (\\%)") 
   return(g)
 }

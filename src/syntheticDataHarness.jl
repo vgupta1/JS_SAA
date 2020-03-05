@@ -12,7 +12,7 @@ include("../src/JS_SAA_main.jl")
 #s is the service level, N is the average amount of data per problem
 function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s; 
 						usePoisson=true, seed=8675309, alpha_max = 180, alpha_len=120, 
-						allCV=false)
+						allCV=false, onlyShrunken=false)
 	Random.seed!(seed)
 	Kmax = maximum(K_grid)
 	@assert Kmax <= size(supp_full, 2) "K_grid exceeds available subproblems"
@@ -86,28 +86,30 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			  @elapsed alphaLOO, min_indx, looUnsc_curve = JS.loo_alpha(xs, cs, mhats, p0, alpha_grid)
 			writedlm(f, [iRun K d N "LOO_unif" or_alpha_curve[min_indx] t alphaLOO], ',')
 
-			#Gen the 5-Fold Cost with 1/d anchor
-			t = 
-			  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 5)
-			writedlm(f, [iRun K d N "CV5_unif" or_alpha_curve[min_indx] t alphaCV], ',')
-
-			if allCV
-				#Gen the 2-Fold Cost with 1/d anchor
+			if !onlyShrunken
+				#Gen the 5-Fold Cost with 1/d anchor
 				t = 
-				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 2)
-				writedlm(f, [iRun K d N "CV2_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 5)
+				writedlm(f, [iRun K d N "CV5_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+
+				if allCV
+					#Gen the 2-Fold Cost with 1/d anchor
+					t = 
+					  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 2)
+					writedlm(f, [iRun K d N "CV2_unif" or_alpha_curve[min_indx] t alphaCV], ',')
 
 
-				#Gen the 10-Fold Cost with 1/d anchor
+					#Gen the 10-Fold Cost with 1/d anchor
+					t = 
+					  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 10)
+					writedlm(f, [iRun K d N "CV10_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+				end
+
+				##MSE version of alpha
 				t = 
-				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, p0, alpha_grid, 10)
-				writedlm(f, [iRun K d N "CV10_unif" or_alpha_curve[min_indx] t alphaCV], ',')
+				  @elapsed alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
+				writedlm(f, [iRun K d N "MSE" or_alpha_curve[min_indx] t alphaMSE], ',')
 			end
-
-			##MSE version of alpha
-			t = 
-			  @elapsed alphaMSE, min_indx = JS.mse_estimates(mhats, supp, p0, alpha_grid)
-			writedlm(f, [iRun K d N "MSE" or_alpha_curve[min_indx] t alphaMSE], ',')
 
 			#Gen the Oracle cost with GM Anchor
 			t = 
@@ -120,32 +122,34 @@ function convInKtest(numRuns, K_grid, supp_full, ps_full, outPath, N_grid, s;
 			writedlm(f, [iRun K d N "LOO_avg" or_alpha_curve_GM[min_indx] t alphaLOO], ',')
 			temp_GM = looUnsc_curve[min_indx]
 
-			#Gen the CV5 cost with the GM Anchor
-			t = 
-			  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 5)
-			writedlm(f, [iRun K d N "CV5_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
-
-			if allCV
-				#Gen the CV2 cost with the GM Anchor
+			if !onlyShrunken
+				#Gen the CV5 cost with the GM Anchor
 				t = 
-				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 2)
-				writedlm(f, [iRun K d N "CV2_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
+				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 5)
+				writedlm(f, [iRun K d N "CV5_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
 
-				#Gen the CV10 cost with the GM Anchor
+				if allCV
+					#Gen the CV2 cost with the GM Anchor
+					t = 
+					  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 2)
+					writedlm(f, [iRun K d N "CV2_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
+
+					#Gen the CV10 cost with the GM Anchor
+					t = 
+					  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 10)
+					writedlm(f, [iRun K d N "CV10_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
+				end
+
+				##MSE version of alpha with GM
 				t = 
-				  @elapsed alphaCV, min_indx, CVUnsc_curve = JS.cv_alpha(xs, cs, mhats, phat_avg, alpha_grid, 10)
-				writedlm(f, [iRun K d N "CV10_avg" or_alpha_curve_GM[min_indx] t alphaCV], ',')
+				  @elapsed alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
+				writedlm(f, [iRun K d N "MSE_GM" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
+
+				##KS version with cross-val
+				t = 
+				  @elapsed perf_KS = JS.zbar(xsKS, cs, mhats, ps, lams, (Gamma_grid, 5))
+				writedlm(f, [iRun K d N "KS" perf_KS t 0.0], ',')
 			end
-
-			##MSE version of alpha with GM
-			t = 
-			  @elapsed alphaMSe, min_indx = JS.mse_estimates(mhats, supp, phat_avg, alpha_grid)
-			writedlm(f, [iRun K d N "MSE_GM" or_alpha_curve_GM[min_indx] t alphaMSE], ',')
-
-			##KS version with cross-val
-			t = 
-			  @elapsed perf_KS = JS.zbar(xsKS, cs, mhats, ps, lams, (Gamma_grid, 5))
-			writedlm(f, [iRun K d N "KS" perf_KS t 0.0], ',')
 
 			## Optimizing a beta distribution anchor
 			t = 

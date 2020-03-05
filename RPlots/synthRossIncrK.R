@@ -6,13 +6,11 @@ library(forcats)
 library(stringr)
 library(tikzDevice)
 library(scales) #To properly format percent axis
+library(xtable)
+K_grid = c(10, 32,  64, 128,  256, 362,  431,  512,  609,  724,  861, 1024, 1115)
 
-usePoisson = TRUE
 
-#To be deleted once we find bug
-# dat <- read_csv(str_c("../Results/PaperPlots/paperv1_syntheticRossman_0.95_", usePoisson, "_200.csv"))
-#dat <- read_csv(str_c("../Results/tempSynthetic_syntheticRossman_0.95_true_16.csv"))
-#dat <- read_csv(str_c("../Results/tempSynth_syntheticRossman_0.95_true_8.csv"))
+usePoisson = FALSE
 
 dat <- read_csv(str_c("../Results/paperv2_syntheticRossman_0.95_", usePoisson, "_200.csv"))
 
@@ -41,10 +39,14 @@ dat.sum <- dat %>% group_by(K, d, N, Method) %>%
     )
 
 
-#### VG FIX THE METHODS HERE AFTER IT RUNS!!!!!
 dat.sum <- dat.sum %>% mutate(Method = as.factor(Method),
-                              Method = fct_relevel(Method, "OptAnchor", "OraclePhat", "LOO_avg", "CV2_avg", "CV5_avg", "CV10_avg", "MSE_GM", "Oracle", "LOO_unif", "CV2_unif", "CV5_unif", "CV10_unif", "MSE", "SAA", "KS", "FullInfo"), 
-                                  Labels = fct_recode(Method, `JS-Fixed`= "MSE", 
+                              Method = fct_relevel(Method, 
+                                                   "BetaOptOR", "BetaOptLOO", 
+                                                   "OraclePhat", "LOO_avg", "MSE_GM", "CV5_avg", 
+                                                   "Oracle", "LOO_unif", "MSE", "CV5_unif", 
+                                                   "SAA", "KS", "FullInfo"), 
+                              Labels = fct_recode(Method, 
+                                                      `JS-Fixed`= "MSE", 
                                                       `JS-GM` = "MSE_GM",
                                                       `S-SAA-Fixed`="LOO_unif", 
                                                       `S-SAA-GM`="LOO_avg", 
@@ -52,11 +54,12 @@ dat.sum <- dat.sum %>% mutate(Method = as.factor(Method),
                                                       `Oracle-GM`="OraclePhat", 
                                                       `CV-5-Fixed`="CV5_unif", 
                                                       `CV-5-GM`="CV5_avg", 
-                                                      `Opt. Anchor` = "OptAnchor") )
+                                                      `Oracle-Beta` = "BetaOptOR", 
+                                                      `S-SAA-Beta` = "BetaOptLOO") )
 
 ##By K 
 pd = position_dodge(.2)
-g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "CV2_unif", "CV2_avg", "CV10_unif", "CV10_avg"), N==10) %>%
+g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "KS", "CV5_unif", "CV5_avg", "BetaOptOR", "BetaOptLOO"), N==10) %>%
   ggplot(aes(K, avgRelBenefit, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
   geom_point(position=pd) + geom_line(position=pd) + 
   geom_errorbar(aes(ymin=avgRelBenefit-stdErrRelBenefit, ymax=avgRelBenefit + stdErrRelBenefit), position=pd) + 
@@ -77,7 +80,7 @@ dev.off()
 
 
 ##Standard Deviation Plot
-g <- dat.sum %>% filter(Method != "FullInfo", N==10) %>%
+g <- dat.sum %>% filter(!Method %in% c("FullInfo", "KS", "CV5_unif", "CV5_avg"), N==10) %>%
   ggplot(aes(K, sdPerf, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
   geom_point(position=pd) + geom_line(position=pd) +
   theme_minimal(base_size = 8) + 
@@ -96,19 +99,25 @@ dev.off()
 
 
 ##### Make a big table for the appendix of all the methods
+dat.sum<- ungroup(dat.sum)
+tdat <- dat.sum %>% filter(!Method %in% c("FullInfo", "CV5_avg", "CV5_unif")) %>% 
+  filter(K %in% K_grid) %>%
+  select(K, Labels, avgRelBenefit) %>%
+  mutate(avgRelBenefit = avgRelBenefit * 100) %>%
+  spread(Labels, avgRelBenefit) 
+xdat <- xtable(tdat, auto=TRUE, digits=2)
 
-
-
-
-
-
-
+print(xdat, str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/SynthDataPoisson", usePoisson, "_20_10.tex"), 
+      type="latex",
+      booktabs=TRUE, 
+      include.rownames=FALSE, 
+      floating = FALSE)  
 
 #####
 #Plots of alpha Convergence
 ####
-g <- dat.sum %>% filter(!Method %in% c("SAA", "FullInfo", "OraclePhat", "LOO_avg"), N==10) %>%
-  ggplot(aes(K, avgAlpha, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
+g <- dat.sum %>% filter(Method %in% c("MSE", "MSE_GM", "LOO_unif", "Oracle")) %>%
+    ggplot(aes(K, avgAlpha, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
   geom_point(position=pd) + geom_line(position=pd) + 
   theme_minimal(base_size = 8) + 
   scale_x_log10() + scale_y_continuous() + 
@@ -122,33 +131,28 @@ if(!usePoisson)
 }
 g
 
-# ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synDataAlphaNonGM_", usePoisson, ".pdf"), 
-#        g, width=3.25, height=3.25, units="in")
 tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/synDataAlphaNonGM_", usePoisson, ".tex"), 
      width = 3.2, height = 3.2)
 g
 dev.off()
 
 
-g <- dat.sum %>% filter(Method %in% c("OraclePhat", "LOO_avg"), N==10) %>%
+g <- dat.sum %>% filter(Method %in% c("OraclePhat", "LOO_avg", "BetaOptOR", "BetaOptLOO"), N==10) %>%
   ggplot(aes(K, avgAlpha, group=Labels, color=Labels, shape=Labels, linetype=Labels)) + 
   geom_point(position=pd) + geom_line(position=pd) + 
   theme_minimal(base_size = 8) + 
   scale_x_log10() + scale_y_continuous() + 
   theme(legend.title=element_blank(), legend.position=c(.6, .8)) +
   ylab("$\\alpha$") + 
-  guides(color=guide_legend(nrow=3,byrow=TRUE))
+  guides(color=guide_legend(nrow=4,byrow=TRUE))
 g
 
 if(!usePoisson)
 {
-  g <- g + theme(legend.position=c(.3, .8))
+  g <- g + theme(legend.position=c(.8, .2))
 }
 g
 
-
-# ggsave(str_c("../../DataPoolingTex/Paper_V1/Figures/synDataAlphaGM_", usePoisson, ".pdf"), 
-#        g, width=3.25, height=3.25, units="in")
 tikz(file = str_c("../../DataPoolingTex/MS_Submission_R2/Paper/Figures/synDataAlphaGM_", usePoisson, ".tex"), 
      width = 3.2, height = 3.2)
 g
